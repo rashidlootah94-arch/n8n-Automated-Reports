@@ -1,0 +1,337 @@
+{
+  "name": "Annual Criminal Report - التقرير السنوي الشامل",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "triggerAtHour": 7, "triggerAtMinute": 0 }] },
+        "options": { "cronExpression": "0 7 1 1 *" }
+      },
+      "id": "schedule-trigger",
+      "name": "Annual Schedule (January 1st)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst reportYear = now.getFullYear() - 1;\n\nfunction toArabicNumerals(num) {\n  const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];\n  return num.toString().split('').map(d => arabicNumerals[parseInt(d)] || d).join('');\n}\n\nconst fileName = `تقرير_سنوي_${reportYear}.docx`;\nconst yearsComparison = [reportYear, reportYear - 1, reportYear - 2, reportYear - 3, reportYear - 4];\n\nreturn {\n  json: {\n    year: reportYear,\n    year_arabic: toArabicNumerals(reportYear),\n    file_name: fileName,\n    report_title: `التقرير السنوي الشامل للرصد الجنائي - ${toArabicNumerals(reportYear)}`,\n    years_comparison: yearsComparison,\n    current_year: now.getFullYear()\n  }\n};"
+      },
+      "id": "set-year-variables",
+      "name": "Set Year Variables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 500]
+    },
+    {
+      "parameters": {},
+      "id": "parallel-branches",
+      "name": "Split into Major Sections",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [680, 500]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "annual crime statistics report" },
+            { "name": "tbs", "value": "qdr:y" },
+            { "name": "num", "value": "25" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-annual-stats",
+      "name": "SERP - Annual Statistics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 100],
+      "credentials": { "httpQueryAuth": { "id": "serp-api", "name": "SERP API" } }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "Global Peace Index safety index Numbeo crime" },
+            { "name": "tbs", "value": "qdr:y" },
+            { "name": "num", "value": "20" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-benchmarking",
+      "name": "SERP - International Benchmarking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 260],
+      "credentials": { "httpQueryAuth": { "id": "serp-api", "name": "SERP API" } }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "engine", "value": "google_scholar" },
+            { "name": "q", "value": "criminology crime prevention policy research" },
+            { "name": "as_ylo", "value": "={{ $('Set Year Variables').item.json.year - 2 }}" },
+            { "name": "num", "value": "40" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "scholar-literature",
+      "name": "Scholar - Literature Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 420],
+      "credentials": { "httpQueryAuth": { "id": "serp-api", "name": "SERP API" } }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "crime prevention best practices case study success" },
+            { "name": "tbs", "value": "qdr:y" },
+            { "name": "num", "value": "25" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-best-practices",
+      "name": "SERP - Best Practices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 580],
+      "credentials": { "httpQueryAuth": { "id": "serp-api", "name": "SERP API" } }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "crime forecast prediction future trends emerging threats" },
+            { "name": "tbs", "value": "qdr:y" },
+            { "name": "num", "value": "20" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-foresight",
+      "name": "SERP - Foresight",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 740],
+      "credentials": { "httpQueryAuth": { "id": "serp-api", "name": "SERP API" } }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "UAE crime statistics safety ranking Dubai Abu Dhabi" },
+            { "name": "tbs", "value": "qdr:y" },
+            { "name": "gl", "value": "ae" },
+            { "name": "num", "value": "20" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-uae",
+      "name": "SERP - UAE Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 900],
+      "credentials": { "httpQueryAuth": { "id": "serp-api", "name": "SERP API" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل إحصائي جنائي متخصص في التقارير السنوية الشاملة.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قدم تقريراً إحصائياً سنوياً شاملاً لعام {{ $('Set Year Variables').item.json.year }} يتضمن:\\n\\n1. تحليل تفصيلي لجميع أنواع الجرائم\\n2. مقارنة 5 سنوات ({{ $('Set Year Variables').item.json.years_comparison.join(', ') }})\\n3. تحليل الاتجاهات والتوقعات\\n4. مؤشرات الأداء الرئيسية (KPIs)\\n5. رسوم بيانية وصفية\\n\\nأنواع الجرائم:\\n- الجرائم العنيفة\\n- الجرائم المالية\\n- الجرائم الإلكترونية\\n- المخدرات\\n- الاتجار بالبشر\\n- الجرائم ضد الأطفال\\n\\nباللغة العربية مع إحصائيات ومصادر.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"year\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-statistics",
+      "name": "Perplexity - Comprehensive Statistics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 100],
+      "credentials": { "httpHeaderAuth": { "id": "perplexity-api", "name": "Perplexity API" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل مقارن دولي متخصص في مؤشرات الأمان والجريمة.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قدم تقرير المقارنة الدولية الشامل:\\n\\n1. ترتيب مؤشر السلام العالمي (Global Peace Index)\\n2. تقارير الأمم المتحدة للجريمة والعدالة الجنائية\\n3. مؤشر السلامة Numbeo\\n4. مؤشرات البنك الدولي\\n\\n5. مقارنة الإمارات مع 20+ دولة:\\n   - دول الخليج\\n   - سنغافورة وهونغ كونغ\\n   - الدول الأوروبية\\n   - الولايات المتحدة\\n   - اليابان وكوريا الجنوبية\\n\\nقدم جداول مقارنة وتحليل للموقف التنافسي للإمارات.\\n\\nباللغة العربية.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"year\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-benchmarking",
+      "name": "Perplexity - International Benchmarking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 260],
+      "credentials": { "httpHeaderAuth": { "id": "perplexity-api", "name": "Perplexity API" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت ملخص أبحاث أكاديمية متخصص في علم الجريمة والوقاية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قدم مراجعة أدبيات سنوية شاملة (100+ دراسة) مصنفة حسب:\\n\\n1. الموضوع:\\n   - الجرائم العنيفة\\n   - الجرائم المالية\\n   - الجرائم الإلكترونية\\n   - الوقاية من الجريمة\\n   - العدالة الجنائية\\n\\n2. الأهمية (عالية، متوسطة، منخفضة)\\n\\n3. لكل دراسة مهمة:\\n   - ملخص تنفيذي\\n   - النتائج الرئيسية\\n   - التوصيات القابلة للتطبيق\\n\\nباللغة العربية.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"year\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-literature",
+      "name": "Perplexity - Annual Literature Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 420],
+      "credentials": { "httpHeaderAuth": { "id": "perplexity-api", "name": "Perplexity API" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت خبير في أفضل الممارسات الدولية لمكافحة الجريمة.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قدم تقرير أفضل الممارسات العالمية الشامل:\\n\\n1. 15-20 دراسة حالة دولية ناجحة\\n\\n2. لكل حالة:\\n   - البلد والمدينة\\n   - المشكلة التي تم حلها\\n   - الحل المطبق\\n   - النتائج المحققة\\n   - عوامل النجاح\\n   - الدروس المستفادة\\n   - قابلية التطبيق في الإمارات\\n\\n3. تحليل الفشل والدروس المستفادة\\n\\n4. خطة تنفيذ مقترحة\\n   - الجدول الزمني\\n   - الموارد المطلوبة\\n   - مؤشرات النجاح\\n\\nباللغة العربية.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"year\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-best-practices",
+      "name": "Perplexity - Best Practices Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 580],
+      "credentials": { "httpHeaderAuth": { "id": "perplexity-api", "name": "Perplexity API" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استشرافي متخصص في التنبؤ بالتهديدات الأمنية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قدم التقرير الاستشرافي السنوي الشامل:\\n\\n1. توقعات الجريمة لـ 3-5 سنوات قادمة\\n   - الجرائم التقليدية\\n   - الجرائم الإلكترونية\\n   - جرائم الذكاء الاصطناعي\\n\\n2. تقييم التهديدات العالمية\\n   - التهديدات الناشئة\\n   - التهديدات المتطورة\\n   - التهديدات المتراجعة\\n\\n3. التوصيات الاستباقية\\n   - الإجراءات الفورية\\n   - الإجراءات متوسطة المدى\\n   - الإجراءات طويلة المدى\\n\\n4. الخطة السنوية للعام {{ $('Set Year Variables').item.json.current_year }}\\n   - الأولويات\\n   - الموارد\\n   - المؤشرات\\n\\nباللغة العربية.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"year\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-foresight",
+      "name": "Perplexity - Foresight Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 740],
+      "credentials": { "httpHeaderAuth": { "id": "perplexity-api", "name": "Perplexity API" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي استراتيجي رفيع المستوى.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"اكتب ملخصاً تنفيذياً شاملاً للتقرير السنوي (800-1000 كلمة):\\n\\nالإحصائيات: {{ $('Perplexity - Comprehensive Statistics').item.json.choices[0].message.content.substring(0, 500) }}\\n\\nالمقارنة الدولية: {{ $('Perplexity - International Benchmarking').item.json.choices[0].message.content.substring(0, 500) }}\\n\\nأفضل الممارسات: {{ $('Perplexity - Best Practices Report').item.json.choices[0].message.content.substring(0, 500) }}\\n\\nالاستشراف: {{ $('Perplexity - Foresight Report').item.json.choices[0].message.content.substring(0, 500) }}\\n\\nيجب أن يتضمن:\\n1. أهم الإنجازات والتحديات\\n2. الموقف التنافسي للإمارات\\n3. التوصيات الاستراتيجية الرئيسية\\n4. أولويات العام القادم\\n\\nباللغة العربية.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true\n}",
+        "options": {}
+      },
+      "id": "perplexity-executive",
+      "name": "Perplexity - Executive Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 500],
+      "credentials": { "httpHeaderAuth": { "id": "perplexity-api", "name": "Perplexity API" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const yearVars = $('Set Year Variables').item.json;\nconst executiveSummary = $('Perplexity - Executive Summary').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst statistics = $('Perplexity - Comprehensive Statistics').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst benchmarking = $('Perplexity - International Benchmarking').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst literature = $('Perplexity - Annual Literature Review').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst bestPractices = $('Perplexity - Best Practices Report').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst foresight = $('Perplexity - Foresight Report').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\n\nconst report = `\n═══════════════════════════════════════════════════════════════\nالتقرير السنوي الشامل للرصد الجنائي والأمني\n───────────────────────────────────────────────────────────────\nعام ${yearVars.year_arabic}\n═══════════════════════════════════════════════════════════════\n\nالمحتويات:\n─────────\n١. الملخص التنفيذي\n٢. التقرير الإحصائي الشامل\n٣. المقارنة الدولية\n٤. مراجعة الأدبيات السنوية\n٥. تقرير أفضل الممارسات العالمية\n٦. التقرير الاستشرافي\n٧. المراجع والمصادر\n\n═══════════════════════════════════════════════════════════════\n١. الملخص التنفيذي\n═══════════════════════════════════════════════════════════════\n${executiveSummary}\n\n═══════════════════════════════════════════════════════════════\n٢. التقرير الإحصائي الشامل\n═══════════════════════════════════════════════════════════════\n${statistics}\n\n═══════════════════════════════════════════════════════════════\n٣. المقارنة الدولية\n═══════════════════════════════════════════════════════════════\n${benchmarking}\n\n═══════════════════════════════════════════════════════════════\n٤. مراجعة الأدبيات السنوية\n═══════════════════════════════════════════════════════════════\n${literature}\n\n═══════════════════════════════════════════════════════════════\n٥. تقرير أفضل الممارسات العالمية\n═══════════════════════════════════════════════════════════════\n${bestPractices}\n\n═══════════════════════════════════════════════════════════════\n٦. التقرير الاستشرافي\n═══════════════════════════════════════════════════════════════\n${foresight}\n\n═══════════════════════════════════════════════════════════════\n٧. المراجع والمصادر\n═══════════════════════════════════════════════════════════════\nالمراجع الكاملة متوفرة في نظام قاعدة البيانات المرجعية\n\n───────────────────────────────────────────────────────────────\nنهاية التقرير السنوي\nتم إعداد هذا التقرير آلياً بواسطة نظام الرصد الجنائي\n───────────────────────────────────────────────────────────────\n`;\n\nreturn { json: { report_content: report, report_title: yearVars.report_title, file_name: yearVars.file_name, year: yearVars.year } };"
+      },
+      "id": "generate-report",
+      "name": "Generate Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1620, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const reportData = $input.first().json;\nconst htmlContent = `<!DOCTYPE html><html dir=\"rtl\" lang=\"ar\"><head><meta charset=\"UTF-8\"><style>body{font-family:'Arial',sans-serif;direction:rtl;text-align:right;line-height:1.8;padding:40px;max-width:900px;margin:0 auto}h1,h2{color:#1a365d;border-bottom:2px solid #2c5282;padding-bottom:10px}pre{white-space:pre-wrap;font-family:'Arial',sans-serif}</style></head><body><pre>${reportData.report_content}</pre></body></html>`;\nreturn { json: { ...reportData, html_content: htmlContent }, binary: { report_html: { data: Buffer.from(htmlContent).toString('base64'), mimeType: 'text/html', fileName: reportData.file_name.replace('.docx', '.html') } } };"
+      },
+      "id": "create-document",
+      "name": "Create Document",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1860, 500]
+    },
+    {
+      "parameters": {
+        "sendTo": "rashid.lootah.94@gmail.com",
+        "subject": "={{ $json.report_title }}",
+        "emailType": "html",
+        "message": "=<div dir=\"rtl\"><h2>التقرير السنوي الشامل للرصد الجنائي</h2><p>مرفق التقرير السنوي لعام {{ $json.year }}</p><p>يتضمن هذا التقرير:</p><ul><li>التقرير الإحصائي الشامل</li><li>المقارنة الدولية</li><li>مراجعة الأدبيات السنوية</li><li>تقرير أفضل الممارسات العالمية</li><li>التقرير الاستشرافي</li></ul></div>",
+        "options": { "attachmentsUi": { "attachmentsBinary": [{ "property": "report_html" }] } }
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2100, 500],
+      "credentials": { "gmailOAuth2": { "id": "gmail-oauth", "name": "Gmail OAuth2" } }
+    }
+  ],
+  "connections": {
+    "Annual Schedule (January 1st)": { "main": [[{ "node": "Set Year Variables", "type": "main", "index": 0 }]] },
+    "Set Year Variables": { "main": [[{ "node": "Split into Major Sections", "type": "main", "index": 0 }]] },
+    "Split into Major Sections": { "main": [[{ "node": "SERP - Annual Statistics", "type": "main", "index": 0 }, { "node": "SERP - International Benchmarking", "type": "main", "index": 0 }, { "node": "Scholar - Literature Review", "type": "main", "index": 0 }, { "node": "SERP - Best Practices", "type": "main", "index": 0 }, { "node": "SERP - Foresight", "type": "main", "index": 0 }, { "node": "SERP - UAE Data", "type": "main", "index": 0 }]] },
+    "SERP - Annual Statistics": { "main": [[{ "node": "Perplexity - Comprehensive Statistics", "type": "main", "index": 0 }]] },
+    "SERP - International Benchmarking": { "main": [[{ "node": "Perplexity - International Benchmarking", "type": "main", "index": 0 }]] },
+    "Scholar - Literature Review": { "main": [[{ "node": "Perplexity - Annual Literature Review", "type": "main", "index": 0 }]] },
+    "SERP - Best Practices": { "main": [[{ "node": "Perplexity - Best Practices Report", "type": "main", "index": 0 }]] },
+    "SERP - Foresight": { "main": [[{ "node": "Perplexity - Foresight Report", "type": "main", "index": 0 }]] },
+    "Perplexity - Comprehensive Statistics": { "main": [[{ "node": "Perplexity - Executive Summary", "type": "main", "index": 0 }]] },
+    "Perplexity - International Benchmarking": { "main": [[{ "node": "Perplexity - Executive Summary", "type": "main", "index": 0 }]] },
+    "Perplexity - Annual Literature Review": { "main": [[{ "node": "Generate Report", "type": "main", "index": 0 }]] },
+    "Perplexity - Best Practices Report": { "main": [[{ "node": "Perplexity - Executive Summary", "type": "main", "index": 0 }]] },
+    "Perplexity - Foresight Report": { "main": [[{ "node": "Perplexity - Executive Summary", "type": "main", "index": 0 }]] },
+    "Perplexity - Executive Summary": { "main": [[{ "node": "Generate Report", "type": "main", "index": 0 }]] },
+    "Generate Report": { "main": [[{ "node": "Create Document", "type": "main", "index": 0 }]] },
+    "Create Document": { "main": [[{ "node": "Send Email", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Dubai", "saveManualExecutions": true },
+  "tags": [{ "name": "Criminal Intelligence" }, { "name": "Annual Report" }]
+}

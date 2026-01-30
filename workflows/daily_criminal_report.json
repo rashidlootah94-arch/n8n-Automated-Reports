@@ -1,0 +1,1305 @@
+{
+  "name": "Daily Criminal Intelligence Report - التقرير اليومي للرصد الجنائي",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        },
+        "options": {
+          "cronExpression": "0 7 * * 0-4"
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Daily Schedule (Sun-Thu 7AM UAE)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 560],
+      "notes": "Runs at 07:00 AM UAE time (Sun-Thu)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Set date variables in both English and Arabic\nconst now = new Date();\n\n// Arabic month names\nconst arabicMonths = [\n  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',\n  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'\n];\n\n// Arabic day names\nconst arabicDays = [\n  'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'\n];\n\n// Convert to Arabic numerals\nfunction toArabicNumerals(num) {\n  const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];\n  return num.toString().split('').map(d => arabicNumerals[parseInt(d)] || d).join('');\n}\n\nconst day = now.getDate();\nconst month = now.getMonth();\nconst year = now.getFullYear();\nconst dayOfWeek = now.getDay();\n\nconst dateArabic = `${arabicDays[dayOfWeek]}، ${toArabicNumerals(day)} ${arabicMonths[month]} ${toArabicNumerals(year)}`;\nconst dateEnglish = now.toISOString().split('T')[0];\nconst fileName = `تقرير_يومي_${dateEnglish}.docx`;\n\nreturn {\n  json: {\n    date_arabic: dateArabic,\n    date_english: dateEnglish,\n    year: year,\n    month: month + 1,\n    day: day,\n    day_name_arabic: arabicDays[dayOfWeek],\n    month_name_arabic: arabicMonths[month],\n    file_name: fileName,\n    report_title: `التقرير اليومي للرصد الجنائي والأمني - ${dateArabic}`,\n    search_recency: 'day'\n  }\n};"
+      },
+      "id": "set-date-variables",
+      "name": "Set Date Variables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 560]
+    },
+    {
+      "parameters": {},
+      "id": "parallel-branches",
+      "name": "Split into Parallel Branches",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [680, 560]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "UAE crime news today"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:d"
+            },
+            {
+              "name": "gl",
+              "value": "ae"
+            },
+            {
+              "name": "hl",
+              "value": "ar"
+            },
+            {
+              "name": "google_domain",
+              "value": "google.ae"
+            },
+            {
+              "name": "num",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-uae-crime",
+      "name": "SERP - UAE Crime News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 140],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "Dubai police news today"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:d"
+            },
+            {
+              "name": "gl",
+              "value": "ae"
+            },
+            {
+              "name": "hl",
+              "value": "ar"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-dubai-police",
+      "name": "SERP - Dubai Police News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 280],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "Abu Dhabi crime incidents security"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:d"
+            },
+            {
+              "name": "gl",
+              "value": "ae"
+            },
+            {
+              "name": "hl",
+              "value": "ar"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-abudhabi",
+      "name": "SERP - Abu Dhabi News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 420],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "Saudi Arabia crime news today"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:d"
+            },
+            {
+              "name": "gl",
+              "value": "sa"
+            },
+            {
+              "name": "hl",
+              "value": "ar"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-gcc-saudi",
+      "name": "SERP - Saudi Arabia News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 560],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "Kuwait Bahrain Qatar Oman crime news"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:d"
+            },
+            {
+              "name": "hl",
+              "value": "ar"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-gcc-others",
+      "name": "SERP - Other GCC News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 700],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "international crime news today"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:d"
+            },
+            {
+              "name": "hl",
+              "value": "en"
+            },
+            {
+              "name": "num",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-international",
+      "name": "SERP - International Crime",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 840],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "European crime news today"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:d"
+            },
+            {
+              "name": "hl",
+              "value": "en"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-europe",
+      "name": "SERP - European News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 980],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "American crime news USA today"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:d"
+            },
+            {
+              "name": "hl",
+              "value": "en"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-americas",
+      "name": "SERP - Americas News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 1120],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "site:unodc.org news"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:d"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-unodc",
+      "name": "SERP - UNODC Updates",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 1260],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "site:interpol.int news"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:d"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-interpol",
+      "name": "SERP - INTERPOL News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 1400],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "site:europol.europa.eu news"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:d"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-europol",
+      "name": "SERP - Europol News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 1540],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "site:fbi.gov news"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:d"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-fbi",
+      "name": "SERP - FBI News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 1680],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge all UAE news results\nconst uaeCrime = $('SERP - UAE Crime News').item?.json?.news_results || [];\nconst dubaiPolice = $('SERP - Dubai Police News').item?.json?.news_results || [];\nconst abuDhabi = $('SERP - Abu Dhabi News').item?.json?.news_results || [];\n\nconst allUaeNews = [...uaeCrime, ...dubaiPolice, ...abuDhabi];\n\n// Deduplicate by title\nconst seen = new Set();\nconst uniqueNews = allUaeNews.filter(news => {\n  const key = news.title?.toLowerCase();\n  if (seen.has(key)) return false;\n  seen.add(key);\n  return true;\n});\n\nreturn {\n  json: {\n    uae_news_count: uniqueNews.length,\n    uae_news: uniqueNews.slice(0, 15).map(n => ({\n      title: n.title,\n      source: n.source?.name || n.source,\n      link: n.link,\n      snippet: n.snippet,\n      date: n.date\n    }))\n  }\n};"
+      },
+      "id": "merge-uae-news",
+      "name": "Merge UAE News",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 280]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge GCC news results\nconst saudiNews = $('SERP - Saudi Arabia News').item?.json?.news_results || [];\nconst otherGcc = $('SERP - Other GCC News').item?.json?.news_results || [];\n\nconst allGccNews = [...saudiNews, ...otherGcc];\n\n// Deduplicate\nconst seen = new Set();\nconst uniqueNews = allGccNews.filter(news => {\n  const key = news.title?.toLowerCase();\n  if (seen.has(key)) return false;\n  seen.add(key);\n  return true;\n});\n\nreturn {\n  json: {\n    gcc_news_count: uniqueNews.length,\n    gcc_news: uniqueNews.slice(0, 15).map(n => ({\n      title: n.title,\n      source: n.source?.name || n.source,\n      link: n.link,\n      snippet: n.snippet,\n      date: n.date\n    }))\n  }\n};"
+      },
+      "id": "merge-gcc-news",
+      "name": "Merge GCC News",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 630]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge international news results\nconst intlNews = $('SERP - International Crime').item?.json?.news_results || [];\nconst europeNews = $('SERP - European News').item?.json?.news_results || [];\nconst americasNews = $('SERP - Americas News').item?.json?.news_results || [];\n\nreturn {\n  json: {\n    international_news: intlNews.slice(0, 10).map(n => ({\n      title: n.title,\n      source: n.source?.name || n.source,\n      link: n.link,\n      snippet: n.snippet,\n      date: n.date\n    })),\n    european_news: europeNews.slice(0, 10).map(n => ({\n      title: n.title,\n      source: n.source?.name || n.source,\n      link: n.link,\n      snippet: n.snippet,\n      date: n.date\n    })),\n    american_news: americasNews.slice(0, 10).map(n => ({\n      title: n.title,\n      source: n.source?.name || n.source,\n      link: n.link,\n      snippet: n.snippet,\n      date: n.date\n    }))\n  }\n};"
+      },
+      "id": "merge-intl-news",
+      "name": "Merge International News",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 980]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge international organization updates\nconst unodcResults = $('SERP - UNODC Updates').item?.json?.organic_results || [];\nconst interpolResults = $('SERP - INTERPOL News').item?.json?.organic_results || [];\nconst europolResults = $('SERP - Europol News').item?.json?.organic_results || [];\nconst fbiResults = $('SERP - FBI News').item?.json?.organic_results || [];\n\nreturn {\n  json: {\n    unodc_updates: unodcResults.slice(0, 5).map(r => ({\n      title: r.title,\n      link: r.link,\n      snippet: r.snippet\n    })),\n    interpol_updates: interpolResults.slice(0, 5).map(r => ({\n      title: r.title,\n      link: r.link,\n      snippet: r.snippet\n    })),\n    europol_updates: europolResults.slice(0, 5).map(r => ({\n      title: r.title,\n      link: r.link,\n      snippet: r.snippet\n    })),\n    fbi_updates: fbiResults.slice(0, 5).map(r => ({\n      title: r.title,\n      link: r.link,\n      snippet: r.snippet\n    }))\n  }\n};"
+      },
+      "id": "merge-org-updates",
+      "name": "Merge Org Updates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 1400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي جنائي متخصص في الشؤون الأمنية لدولة الإمارات العربية المتحدة. قدم تحليلاً مهنياً ودقيقاً باللغة العربية مع ذكر المصادر.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل وتلخيص آخر أخبار الجريمة والأمن في الإمارات العربية المتحدة لهذا اليوم. المصادر المتاحة:\\n\\n{{ JSON.stringify($('Merge UAE News').item.json.uae_news) }}\\n\\nالمطلوب:\\n1. ملخص الحوادث الجنائية الرئيسية اليوم\\n2. أي أنماط ملحوظة\\n3. الإجراءات الأمنية المتخذة\\n\\nقدم الإجابة باللغة العربية بشكل منظم ومهني مع ذكر المصادر.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"day\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-uae-analysis",
+      "name": "Perplexity - UAE Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 280],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي جنائي متخصص في شؤون دول مجلس التعاون الخليجي. قدم تحليلاً مهنياً باللغة العربية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل وتلخيص آخر أخبار الجريمة في دول مجلس التعاون الخليجي (السعودية، الكويت، البحرين، قطر، عمان) لهذا اليوم.\\n\\nالمصادر:\\n{{ JSON.stringify($('Merge GCC News').item.json.gcc_news) }}\\n\\nقدم:\\n1. ملخص للتطورات الأمنية الإقليمية\\n2. أي تهديدات عابرة للحدود\\n3. التعاون الأمني بين دول المجلس\\n\\nباللغة العربية مع المصادر.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"day\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-gcc-analysis",
+      "name": "Perplexity - GCC Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 630],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي جنائي دولي. قدم تحليلاً شاملاً للأخبار الجنائية العالمية باللغة العربية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل وتلخيص أهم الأخبار الجنائية الدولية لهذا اليوم.\\n\\nالأخبار الدولية العامة:\\n{{ JSON.stringify($('Merge International News').item.json.international_news) }}\\n\\nالأخبار الأوروبية:\\n{{ JSON.stringify($('Merge International News').item.json.european_news) }}\\n\\nالأخبار الأمريكية:\\n{{ JSON.stringify($('Merge International News').item.json.american_news) }}\\n\\nقدم تحليلاً منظماً يشمل:\\n1. الجرائم العابرة للحدود\\n2. الاتجاهات الجنائية العالمية\\n3. الصلة المحتملة بالمنطقة العربية\\n\\nباللغة العربية.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"day\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-intl-analysis",
+      "name": "Perplexity - International Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 980],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل متخصص في متابعة المنظمات الدولية المعنية بمكافحة الجريمة. قدم ملخصاً باللغة العربية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتلخيص آخر تحديثات المنظمات الدولية المعنية بمكافحة الجريمة:\\n\\nمكتب الأمم المتحدة المعني بالمخدرات والجريمة (UNODC):\\n{{ JSON.stringify($('Merge Org Updates').item.json.unodc_updates) }}\\n\\nالإنتربول:\\n{{ JSON.stringify($('Merge Org Updates').item.json.interpol_updates) }}\\n\\nيوروبول:\\n{{ JSON.stringify($('Merge Org Updates').item.json.europol_updates) }}\\n\\nمكتب التحقيقات الفيدرالي (FBI):\\n{{ JSON.stringify($('Merge Org Updates').item.json.fbi_updates) }}\\n\\nقدم ملخصاً منظماً لكل منظمة باللغة العربية.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"day\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-org-analysis",
+      "name": "Perplexity - Org Updates Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 1400],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل أنماط جنائية متخصص. قم بتحليل الأنماط الجنائية المتكررة من البيانات المقدمة.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"بناءً على أخبار الجريمة اليوم من الإمارات ودول الخليج والعالم، قم بتحليل:\\n\\n1. الأنماط الجنائية المتكررة عبر أنواع الجرائم المختلفة\\n2. الأنماط الزمنية (وقت اليوم، يوم الأسبوع)\\n3. التجمعات الجغرافية\\n4. الروابط بين الحوادث المحلية والاتجاهات الإقليمية/الدولية\\n\\nأخبار الإمارات: {{ JSON.stringify($('Merge UAE News').item.json.uae_news.slice(0, 5)) }}\\nأخبار الخليج: {{ JSON.stringify($('Merge GCC News').item.json.gcc_news.slice(0, 5)) }}\\nأخبار دولية: {{ JSON.stringify($('Merge International News').item.json.international_news.slice(0, 5)) }}\\n\\nقدم التحليل باللغة العربية بشكل منظم.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"day\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-pattern-analysis",
+      "name": "Perplexity - Pattern Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 1700],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي جنائي رفيع المستوى. قم بإعداد ملخص تنفيذي شامل.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"اكتب ملخصاً تنفيذياً شاملاً للتقرير اليومي للرصد الجنائي يتضمن:\\n\\n1. أهم 3-5 تطورات جنائية/أمنية اليوم\\n2. مستوى التهديد الحالي\\n3. التوصيات العاجلة (إن وجدت)\\n\\nتحليل الإمارات: {{ $('Perplexity - UAE Analysis').item.json.choices[0].message.content.substring(0, 500) }}\\n\\nتحليل الخليج: {{ $('Perplexity - GCC Analysis').item.json.choices[0].message.content.substring(0, 500) }}\\n\\nتحليل دولي: {{ $('Perplexity - International Analysis').item.json.choices[0].message.content.substring(0, 500) }}\\n\\nاكتب الملخص باللغة العربية بشكل موجز ومهني (200-300 كلمة).\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true\n}",
+        "options": {}
+      },
+      "id": "perplexity-executive-summary",
+      "name": "Perplexity - Executive Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1620, 980],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect all news sources for reference database\nconst uaeNews = $('Merge UAE News').item?.json?.uae_news || [];\nconst gccNews = $('Merge GCC News').item?.json?.gcc_news || [];\nconst intlNews = $('Merge International News').item?.json?.international_news || [];\nconst euroNews = $('Merge International News').item?.json?.european_news || [];\nconst ameriNews = $('Merge International News').item?.json?.american_news || [];\nconst orgUpdates = $('Merge Org Updates').item?.json || {};\n\nconst references = [];\n\n// Process UAE news\nuaeNews.forEach(news => {\n  if (news.link) {\n    references.push({\n      title: news.title,\n      url: news.link,\n      source_type: 'news',\n      source_name: news.source,\n      publication_date: new Date().toISOString().split('T')[0],\n      crime_type: ['other'],\n      region: ['UAE'],\n      geographical_scope: 'local'\n    });\n  }\n});\n\n// Process GCC news\ngccNews.forEach(news => {\n  if (news.link) {\n    references.push({\n      title: news.title,\n      url: news.link,\n      source_type: 'news',\n      source_name: news.source,\n      publication_date: new Date().toISOString().split('T')[0],\n      crime_type: ['other'],\n      region: ['GCC'],\n      geographical_scope: 'regional'\n    });\n  }\n});\n\n// Process international news\n[...intlNews, ...euroNews, ...ameriNews].forEach(news => {\n  if (news.link) {\n    references.push({\n      title: news.title,\n      url: news.link,\n      source_type: 'news',\n      source_name: news.source,\n      publication_date: new Date().toISOString().split('T')[0],\n      crime_type: ['other'],\n      region: ['Global'],\n      geographical_scope: 'international'\n    });\n  }\n});\n\n// Process org updates\n['unodc_updates', 'interpol_updates', 'europol_updates', 'fbi_updates'].forEach(key => {\n  const updates = orgUpdates[key] || [];\n  updates.forEach(update => {\n    if (update.link) {\n      references.push({\n        title: update.title,\n        url: update.link,\n        source_type: 'international_org',\n        source_name: key.replace('_updates', '').toUpperCase(),\n        publication_date: new Date().toISOString().split('T')[0],\n        crime_type: ['other'],\n        region: ['Global'],\n        geographical_scope: 'international'\n      });\n    }\n  });\n});\n\nreturn {\n  json: {\n    operation: 'ADD_BATCH_REFERENCES',\n    references: references.slice(0, 50) // Limit to 50 references per day\n  }\n};"
+      },
+      "id": "prepare-references",
+      "name": "Prepare References for DB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1860, 1400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.N8N_WEBHOOK_URL || 'http://localhost:5678'}}/webhook/reference-manager",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "save-references",
+      "name": "Save References to DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2080, 1400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate the complete Arabic report\nconst dateVars = $('Set Date Variables').item.json;\nconst uaeAnalysis = $('Perplexity - UAE Analysis').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst gccAnalysis = $('Perplexity - GCC Analysis').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst intlAnalysis = $('Perplexity - International Analysis').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst orgAnalysis = $('Perplexity - Org Updates Analysis').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst patternAnalysis = $('Perplexity - Pattern Analysis').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst executiveSummary = $('Perplexity - Executive Summary').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\n\n// Collect citations from Perplexity responses\nconst uaeCitations = $('Perplexity - UAE Analysis').item?.json?.citations || [];\nconst gccCitations = $('Perplexity - GCC Analysis').item?.json?.citations || [];\nconst intlCitations = $('Perplexity - International Analysis').item?.json?.citations || [];\nconst orgCitations = $('Perplexity - Org Updates Analysis').item?.json?.citations || [];\n\nconst allCitations = [...new Set([...uaeCitations, ...gccCitations, ...intlCitations, ...orgCitations])];\n\n// Format references\nlet referencesSection = '';\nallCitations.forEach((cite, i) => {\n  referencesSection += `${i + 1}. ${cite}\\n`;\n});\n\nif (!referencesSection) {\n  referencesSection = 'المراجع متوفرة في نظام قاعدة البيانات المرجعية';\n}\n\nconst report = `\n═══════════════════════════════════════════════════════════════\nالتقرير اليومي للرصد الجنائي والأمني\n───────────────────────────────────────────────────────────────\nالتاريخ: ${dateVars.date_arabic}\nوقت الإصدار: ٠٧:٠٠ صباحاً بتوقيت الإمارات\n═══════════════════════════════════════════════════════════════\n\nالمحتويات:\n─────────\n١. ملخص تنفيذي\n٢. الأنماط الجنائية المتكررة\n٣. النشرة الإخبارية المحلية (الإمارات)\n٤. النشرة الإخبارية الإقليمية (دول مجلس التعاون)\n٥. النشرة الإخبارية الدولية\n٦. تحديثات المنظمات الدولية\n٧. المراجع والمصادر\n\n═══════════════════════════════════════════════════════════════\n١. الملخص التنفيذي\n═══════════════════════════════════════════════════════════════\n${executiveSummary}\n\n═══════════════════════════════════════════════════════════════\n٢. الأنماط الجنائية المتكررة\n═══════════════════════════════════════════════════════════════\n${patternAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٣. النشرة الإخبارية المحلية (الإمارات العربية المتحدة)\n═══════════════════════════════════════════════════════════════\n${uaeAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٤. النشرة الإخبارية الإقليمية (دول مجلس التعاون الخليجي)\n═══════════════════════════════════════════════════════════════\n${gccAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٥. النشرة الإخبارية الدولية\n═══════════════════════════════════════════════════════════════\n${intlAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٦. تحديثات المنظمات الدولية\n═══════════════════════════════════════════════════════════════\n${orgAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٧. المراجع والمصادر\n═══════════════════════════════════════════════════════════════\n${referencesSection}\n\n───────────────────────────────────────────────────────────────\nنهاية التقرير\nتم إعداد هذا التقرير آلياً بواسطة نظام الرصد الجنائي\n───────────────────────────────────────────────────────────────\n`;\n\nreturn {\n  json: {\n    report_content: report,\n    report_title: dateVars.report_title,\n    file_name: dateVars.file_name,\n    date: dateVars.date_english\n  }\n};"
+      },
+      "id": "generate-report",
+      "name": "Generate Arabic Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2080, 980]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create Word document content\nconst reportData = $input.first().json;\n\n// Convert report to base64 for binary handling\n// In production, you would use a proper DOCX library\n// For n8n, we'll create HTML that can be converted or use as rich text\n\nconst htmlContent = `\n<!DOCTYPE html>\n<html dir=\"rtl\" lang=\"ar\">\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    body {\n      font-family: 'Arial', 'Tahoma', sans-serif;\n      direction: rtl;\n      text-align: right;\n      line-height: 1.8;\n      padding: 40px;\n      max-width: 800px;\n      margin: 0 auto;\n    }\n    h1, h2, h3 {\n      color: #1a365d;\n      border-bottom: 2px solid #2c5282;\n      padding-bottom: 10px;\n    }\n    h1 {\n      font-size: 24px;\n      text-align: center;\n    }\n    h2 {\n      font-size: 18px;\n      margin-top: 30px;\n    }\n    .header {\n      background-color: #2c5282;\n      color: white;\n      padding: 20px;\n      text-align: center;\n      margin-bottom: 30px;\n    }\n    .section {\n      margin-bottom: 25px;\n      padding: 15px;\n      background-color: #f7fafc;\n      border-radius: 5px;\n    }\n    .footer {\n      margin-top: 40px;\n      padding-top: 20px;\n      border-top: 2px solid #2c5282;\n      text-align: center;\n      font-size: 12px;\n      color: #666;\n    }\n    pre {\n      white-space: pre-wrap;\n      font-family: 'Arial', 'Tahoma', sans-serif;\n    }\n  </style>\n</head>\n<body>\n  <pre>${reportData.report_content}</pre>\n</body>\n</html>\n`;\n\nreturn {\n  json: {\n    ...reportData,\n    html_content: htmlContent\n  },\n  binary: {\n    report_html: {\n      data: Buffer.from(htmlContent).toString('base64'),\n      mimeType: 'text/html',\n      fileName: reportData.file_name.replace('.docx', '.html')\n    }\n  }\n};"
+      },
+      "id": "create-document",
+      "name": "Create Document",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2300, 980]
+    },
+    {
+      "parameters": {
+        "sendTo": "rashid.lootah.94@gmail.com",
+        "subject": "={{ $json.report_title }}",
+        "emailType": "html",
+        "message": "=<div dir=\"rtl\" style=\"font-family: Arial, Tahoma, sans-serif; text-align: right;\">\n<h2>التقرير اليومي للرصد الجنائي والأمني</h2>\n<p>مرفق التقرير اليومي بتاريخ {{ $json.date }}</p>\n<p>يرجى الاطلاع على المرفق للتفاصيل الكاملة.</p>\n<hr>\n<p style=\"font-size: 12px; color: #666;\">تم إرسال هذا التقرير آلياً بواسطة نظام الرصد الجنائي</p>\n</div>",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "report_html"
+              }
+            ]
+          }
+        }
+      },
+      "id": "send-email",
+      "name": "Send Report Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2520, 980],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-oauth",
+          "name": "Gmail OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-email-sent",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-success",
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2740, 980]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    success: true,\n    message: 'Daily criminal intelligence report sent successfully',\n    report_date: $('Set Date Variables').item.json.date_english,\n    recipient: 'rashid.lootah.94@gmail.com',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "success-log",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2960, 880]
+    },
+    {
+      "parameters": {
+        "sendTo": "rashid.lootah.94@gmail.com",
+        "subject": "⚠️ فشل إرسال التقرير اليومي للرصد الجنائي",
+        "emailType": "html",
+        "message": "=<div dir=\"rtl\" style=\"font-family: Arial, Tahoma, sans-serif; text-align: right;\">\n<h2>تنبيه: فشل تنفيذ سير العمل</h2>\n<p><strong>اسم سير العمل:</strong> التقرير اليومي للرصد الجنائي</p>\n<p><strong>التاريخ:</strong> {{ $('Set Date Variables').item.json.date_arabic }}</p>\n<p><strong>الوقت:</strong> {{ new Date().toISOString() }}</p>\n<p>يرجى مراجعة سجلات n8n للحصول على مزيد من التفاصيل.</p>\n</div>",
+        "options": {}
+      },
+      "id": "error-notification",
+      "name": "Send Error Notification",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2960, 1080],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-oauth",
+          "name": "Gmail OAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily Schedule (Sun-Thu 7AM UAE)": {
+      "main": [
+        [
+          {
+            "node": "Set Date Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Date Variables": {
+      "main": [
+        [
+          {
+            "node": "Split into Parallel Branches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split into Parallel Branches": {
+      "main": [
+        [
+          {
+            "node": "SERP - UAE Crime News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - Dubai Police News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - Abu Dhabi News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - Saudi Arabia News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - Other GCC News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - International Crime",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - European News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - Americas News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - UNODC Updates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - INTERPOL News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - Europol News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - FBI News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - UAE Crime News": {
+      "main": [
+        [
+          {
+            "node": "Merge UAE News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Dubai Police News": {
+      "main": [
+        [
+          {
+            "node": "Merge UAE News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Abu Dhabi News": {
+      "main": [
+        [
+          {
+            "node": "Merge UAE News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Saudi Arabia News": {
+      "main": [
+        [
+          {
+            "node": "Merge GCC News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Other GCC News": {
+      "main": [
+        [
+          {
+            "node": "Merge GCC News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - International Crime": {
+      "main": [
+        [
+          {
+            "node": "Merge International News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - European News": {
+      "main": [
+        [
+          {
+            "node": "Merge International News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Americas News": {
+      "main": [
+        [
+          {
+            "node": "Merge International News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - UNODC Updates": {
+      "main": [
+        [
+          {
+            "node": "Merge Org Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - INTERPOL News": {
+      "main": [
+        [
+          {
+            "node": "Merge Org Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Europol News": {
+      "main": [
+        [
+          {
+            "node": "Merge Org Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - FBI News": {
+      "main": [
+        [
+          {
+            "node": "Merge Org Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge UAE News": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - UAE Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge GCC News": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - GCC Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge International News": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - International Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Org Updates": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Org Updates Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - UAE Analysis": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Executive Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Perplexity - Pattern Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - GCC Analysis": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Executive Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - International Analysis": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Executive Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Org Updates Analysis": {
+      "main": [
+        [
+          {
+            "node": "Prepare References for DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Pattern Analysis": {
+      "main": [
+        [
+          {
+            "node": "Generate Arabic Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Executive Summary": {
+      "main": [
+        [
+          {
+            "node": "Generate Arabic Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare References for DB": {
+      "main": [
+        [
+          {
+            "node": "Save References to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Arabic Report": {
+      "main": [
+        [
+          {
+            "node": "Create Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Document": {
+      "main": [
+        [
+          {
+            "node": "Send Report Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Report Email": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Dubai",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Criminal Intelligence",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "Daily Report",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

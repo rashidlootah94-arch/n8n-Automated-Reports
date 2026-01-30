@@ -1,0 +1,825 @@
+{
+  "name": "Reference Manager - Criminal Intelligence Database",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reference-manager",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "reference-manager-webhook"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "outputKey": "add_reference",
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operation }}",
+                    "rightValue": "ADD_REFERENCE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "search_references",
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operation }}",
+                    "rightValue": "SEARCH_REFERENCES",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "update_access",
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operation }}",
+                    "rightValue": "UPDATE_LAST_ACCESSED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "get_statistics",
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operation }}",
+                    "rightValue": "GET_STATISTICS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "export_references",
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operation }}",
+                    "rightValue": "EXPORT_REFERENCES",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "add_batch",
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operation }}",
+                    "rightValue": "ADD_BATCH_REFERENCES",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "switch-operation",
+      "name": "Route by Operation",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate reference data\nconst ref = $input.first().json.reference;\n\nif (!ref) {\n  throw new Error('Reference data is required');\n}\n\nif (!ref.title) {\n  throw new Error('Title is required');\n}\n\nif (!ref.url && !ref.doi) {\n  throw new Error('Either URL or DOI is required');\n}\n\nif (!ref.source_type) {\n  throw new Error('Source type is required');\n}\n\nconst validSourceTypes = ['academic', 'governmental', 'international_org', 'news'];\nif (!validSourceTypes.includes(ref.source_type)) {\n  throw new Error(`Invalid source_type. Must be one of: ${validSourceTypes.join(', ')}`);\n}\n\n// Generate citations\nconst authors = ref.authors || 'Unknown Author';\nconst year = ref.publication_date \n  ? new Date(ref.publication_date).getFullYear() \n  : 'n.d.';\nconst title = ref.title;\nconst source = ref.source_name || '';\nconst url = ref.url || '';\nconst doi = ref.doi || '';\nconst accessed = new Date().toLocaleDateString('en-US', {\n  year: 'numeric', month: 'long', day: 'numeric'\n});\nconst accessedHarvard = new Date().toLocaleDateString('en-GB', {\n  day: 'numeric', month: 'long', year: 'numeric'\n});\n\n// Generate APA citation\nlet citationAPA;\nif (ref.source_type === 'academic') {\n  citationAPA = `${authors} (${year}). ${title}. ${source}. ${doi ? 'https://doi.org/' + doi : url}`;\n} else if (ref.source_type === 'news') {\n  citationAPA = `${authors} (${year}). ${title}. ${source}. Retrieved ${accessed}, from ${url}`;\n} else {\n  citationAPA = `${authors} (${year}). ${title}. ${source}. Retrieved from ${url}`;\n}\n\n// Generate Harvard citation\nconst citationHarvard = `${authors}, ${year}. ${title}. [online] ${source}. Available at: ${url} [Accessed ${accessedHarvard}].`;\n\nreturn {\n  json: {\n    ...ref,\n    citation_apa: citationAPA,\n    citation_harvard: citationHarvard,\n    crime_type: ref.crime_type ? (Array.isArray(ref.crime_type) ? ref.crime_type : [ref.crime_type]) : null,\n    region: ref.region ? (Array.isArray(ref.region) ? ref.region : [ref.region]) : null,\n    keywords: ref.keywords ? (Array.isArray(ref.keywords) ? ref.keywords : [ref.keywords]) : null\n  }\n};"
+      },
+      "id": "validate-reference",
+      "name": "Validate & Generate Citations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 160]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM criminal_references WHERE url = $1 OR (doi IS NOT NULL AND doi = $2)",
+        "options": {
+          "queryReplacement": "={{ $json.url }}, {{ $json.doi || '' }}"
+        }
+      },
+      "id": "check-duplicate",
+      "name": "Check Duplicate",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [900, 160],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-duplicate",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-not-duplicate",
+      "name": "If Not Duplicate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a translation assistant. Translate the given title to Arabic accurately. Return ONLY the Arabic translation, nothing else.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Translate this title to Arabic: {{ $('Validate & Generate Citations').item.json.title }}\"\n    }\n  ],\n  \"temperature\": 0.1\n}",
+        "options": {}
+      },
+      "id": "translate-title",
+      "name": "Translate Title to Arabic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 60],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO criminal_references (\n  title, title_ar, authors, publication_date, source_type, source_name,\n  url, doi, crime_type, geographical_scope, region, language,\n  abstract, abstract_ar, keywords, citation_apa, citation_harvard,\n  relevance_score, notes\n) VALUES (\n  $1, $2, $3, $4::date, $5::source_type_enum, $6,\n  $7, $8, $9::crime_type_enum[], $10::geographical_scope_enum, $11::region_enum[], $12,\n  $13, $14, $15, $16, $17,\n  $18, $19\n) RETURNING id, title, citation_apa",
+        "options": {
+          "queryReplacement": "={{ $('Validate & Generate Citations').item.json.title }}, ={{ $json.choices[0].message.content || $('Validate & Generate Citations').item.json.title_ar || '' }}, ={{ $('Validate & Generate Citations').item.json.authors || null }}, ={{ $('Validate & Generate Citations').item.json.publication_date || null }}, ={{ $('Validate & Generate Citations').item.json.source_type }}, ={{ $('Validate & Generate Citations').item.json.source_name || null }}, ={{ $('Validate & Generate Citations').item.json.url || null }}, ={{ $('Validate & Generate Citations').item.json.doi || null }}, ={{ $('Validate & Generate Citations').item.json.crime_type ? '{' + $('Validate & Generate Citations').item.json.crime_type.join(',') + '}' : null }}, ={{ $('Validate & Generate Citations').item.json.geographical_scope || null }}, ={{ $('Validate & Generate Citations').item.json.region ? '{' + $('Validate & Generate Citations').item.json.region.join(',') + '}' : null }}, ={{ $('Validate & Generate Citations').item.json.language || 'en' }}, ={{ $('Validate & Generate Citations').item.json.abstract || null }}, ={{ $('Validate & Generate Citations').item.json.abstract_ar || null }}, ={{ $('Validate & Generate Citations').item.json.keywords ? '{' + $('Validate & Generate Citations').item.json.keywords.map(k => '\"' + k + '\"').join(',') + '}' : null }}, ={{ $('Validate & Generate Citations').item.json.citation_apa }}, ={{ $('Validate & Generate Citations').item.json.citation_harvard }}, ={{ $('Validate & Generate Citations').item.json.relevance_score || null }}, ={{ $('Validate & Generate Citations').item.json.notes || null }}"
+        }
+      },
+      "id": "insert-reference",
+      "name": "Insert Reference",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1560, 60],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    success: true,\n    message: 'Reference already exists in database',\n    duplicate: true,\n    existing_id: $input.first().json[0]?.id\n  }\n};"
+      },
+      "id": "duplicate-response",
+      "name": "Duplicate Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    success: true,\n    message: 'Reference added successfully',\n    reference: $input.first().json[0]\n  }\n};"
+      },
+      "id": "success-response-add",
+      "name": "Format Success Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 60]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build search query based on parameters\nconst params = $input.first().json;\n\nlet conditions = [];\nlet queryParams = [];\nlet paramIndex = 1;\n\nif (params.search_text) {\n  conditions.push(`to_tsvector('english', title || ' ' || COALESCE(abstract, '')) @@ plainto_tsquery('english', $${paramIndex})`);\n  queryParams.push(params.search_text);\n  paramIndex++;\n}\n\nif (params.source_type) {\n  conditions.push(`source_type = $${paramIndex}::source_type_enum`);\n  queryParams.push(params.source_type);\n  paramIndex++;\n}\n\nif (params.crime_types && params.crime_types.length > 0) {\n  conditions.push(`crime_type && $${paramIndex}::crime_type_enum[]`);\n  queryParams.push('{' + params.crime_types.join(',') + '}');\n  paramIndex++;\n}\n\nif (params.regions && params.regions.length > 0) {\n  conditions.push(`region && $${paramIndex}::region_enum[]`);\n  queryParams.push('{' + params.regions.join(',') + '}');\n  paramIndex++;\n}\n\nif (params.date_from) {\n  conditions.push(`publication_date >= $${paramIndex}::date`);\n  queryParams.push(params.date_from);\n  paramIndex++;\n}\n\nif (params.date_to) {\n  conditions.push(`publication_date <= $${paramIndex}::date`);\n  queryParams.push(params.date_to);\n  paramIndex++;\n}\n\nconst whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';\nconst limit = params.limit || 100;\n\nconst query = `\n  SELECT \n    id, title, title_ar, authors, publication_date,\n    source_type, source_name, url, doi,\n    crime_type, geographical_scope, region,\n    language, abstract, abstract_ar, keywords,\n    citation_apa, citation_harvard, relevance_score,\n    date_added, last_accessed\n  FROM criminal_references\n  ${whereClause}\n  ORDER BY relevance_score DESC NULLS LAST, publication_date DESC NULLS LAST\n  LIMIT ${limit}\n`;\n\nreturn {\n  json: {\n    query,\n    params: queryParams\n  }\n};"
+      },
+      "id": "build-search-query",
+      "name": "Build Search Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.query }}",
+        "options": {}
+      },
+      "id": "execute-search",
+      "name": "Execute Search",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [900, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $input.first().json;\n\nreturn {\n  json: {\n    success: true,\n    count: Array.isArray(results) ? results.length : 0,\n    references: Array.isArray(results) ? results : []\n  }\n};"
+      },
+      "id": "format-search-results",
+      "name": "Format Search Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE criminal_references SET last_accessed = CURRENT_TIMESTAMP, access_count = access_count + 1 WHERE id = ANY($1::int[]) RETURNING id",
+        "options": {
+          "queryReplacement": "={{ '{' + $json.reference_ids.join(',') + '}' }}"
+        }
+      },
+      "id": "update-access",
+      "name": "Update Access Timestamps",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [680, 440],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const updated = $input.first().json;\n\nreturn {\n  json: {\n    success: true,\n    message: 'Access timestamps updated',\n    updated_count: Array.isArray(updated) ? updated.length : 0\n  }\n};"
+      },
+      "id": "format-access-response",
+      "name": "Format Access Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 440]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM get_reference_statistics()",
+        "options": {}
+      },
+      "id": "get-stats",
+      "name": "Get Statistics",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [680, 580],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const stats = $input.first().json[0];\n\nreturn {\n  json: {\n    success: true,\n    statistics: {\n      total_references: stats.total_references,\n      by_source_type: stats.by_source_type,\n      by_crime_type: stats.by_crime_type,\n      by_region: stats.by_region,\n      by_year: stats.by_year,\n      recent_additions_30_days: stats.recent_additions,\n      most_accessed: stats.most_accessed\n    }\n  }\n};"
+      },
+      "id": "format-stats",
+      "name": "Format Statistics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 580]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build export query\nconst params = $input.first().json;\nconst format = params.format || 'apa'; // 'apa' or 'harvard'\nconst sourceType = params.source_type;\nconst crimeTypes = params.crime_types;\nconst regions = params.regions;\n\nlet conditions = [];\n\nif (sourceType) {\n  conditions.push(`source_type = '${sourceType}'::source_type_enum`);\n}\n\nif (crimeTypes && crimeTypes.length > 0) {\n  conditions.push(`crime_type && '{${crimeTypes.join(',')}}'::crime_type_enum[]`);\n}\n\nif (regions && regions.length > 0) {\n  conditions.push(`region && '{${regions.join(',')}}'::region_enum[]`);\n}\n\nconst whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';\n\nconst citationField = format === 'harvard' ? 'citation_harvard' : 'citation_apa';\n\nconst query = `\n  SELECT \n    id, title, title_ar, authors, publication_date,\n    source_type, ${citationField} as citation\n  FROM criminal_references\n  ${whereClause}\n  ORDER BY \n    CASE source_type \n      WHEN 'academic' THEN 1 \n      WHEN 'governmental' THEN 2 \n      WHEN 'international_org' THEN 3 \n      ELSE 4 \n    END,\n    authors ASC NULLS LAST,\n    publication_date DESC NULLS LAST\n`;\n\nreturn {\n  json: {\n    query,\n    format\n  }\n};"
+      },
+      "id": "build-export-query",
+      "name": "Build Export Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 720]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.query }}",
+        "options": {}
+      },
+      "id": "execute-export",
+      "name": "Execute Export Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [900, 720],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const references = $input.first().json;\nconst format = $('Build Export Query').item.json.format;\n\n// Group by source type\nconst grouped = {\n  academic: [],\n  governmental: [],\n  international_org: [],\n  news: []\n};\n\nif (Array.isArray(references)) {\n  references.forEach(ref => {\n    if (grouped[ref.source_type]) {\n      grouped[ref.source_type].push(ref.citation);\n    }\n  });\n}\n\n// Format bibliography\nlet bibliography = '';\nconst formatName = format === 'harvard' ? 'Harvard' : 'APA';\n\nbibliography += `قائمة المراجع (${formatName})\\n`;\nbibliography += '═'.repeat(50) + '\\n\\n';\n\nif (grouped.academic.length > 0) {\n  bibliography += 'أ. المصادر الأكاديمية:\\n';\n  bibliography += '─'.repeat(30) + '\\n';\n  grouped.academic.forEach((cite, i) => {\n    bibliography += `${i + 1}. ${cite}\\n\\n`;\n  });\n}\n\nif (grouped.governmental.length > 0) {\n  bibliography += '\\nب. المصادر الحكومية:\\n';\n  bibliography += '─'.repeat(30) + '\\n';\n  grouped.governmental.forEach((cite, i) => {\n    bibliography += `${i + 1}. ${cite}\\n\\n`;\n  });\n}\n\nif (grouped.international_org.length > 0) {\n  bibliography += '\\nج. مصادر المنظمات الدولية:\\n';\n  bibliography += '─'.repeat(30) + '\\n';\n  grouped.international_org.forEach((cite, i) => {\n    bibliography += `${i + 1}. ${cite}\\n\\n`;\n  });\n}\n\nif (grouped.news.length > 0) {\n  bibliography += '\\nد. المصادر الإخبارية:\\n';\n  bibliography += '─'.repeat(30) + '\\n';\n  grouped.news.forEach((cite, i) => {\n    bibliography += `${i + 1}. ${cite}\\n\\n`;\n  });\n}\n\nreturn {\n  json: {\n    success: true,\n    format: format,\n    total_references: Array.isArray(references) ? references.length : 0,\n    bibliography: bibliography,\n    grouped_counts: {\n      academic: grouped.academic.length,\n      governmental: grouped.governmental.length,\n      international_org: grouped.international_org.length,\n      news: grouped.news.length\n    }\n  }\n};"
+      },
+      "id": "format-bibliography",
+      "name": "Format Bibliography",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 720]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process batch of references\nconst references = $input.first().json.references;\n\nif (!Array.isArray(references)) {\n  throw new Error('References must be an array');\n}\n\nconst validSourceTypes = ['academic', 'governmental', 'international_org', 'news'];\nconst processedRefs = [];\n\nfor (const ref of references) {\n  if (!ref.title) continue;\n  if (!ref.url && !ref.doi) continue;\n  if (!validSourceTypes.includes(ref.source_type)) continue;\n  \n  // Generate citations\n  const authors = ref.authors || 'Unknown Author';\n  const year = ref.publication_date \n    ? new Date(ref.publication_date).getFullYear() \n    : 'n.d.';\n  const title = ref.title;\n  const source = ref.source_name || '';\n  const url = ref.url || '';\n  const doi = ref.doi || '';\n  const accessed = new Date().toLocaleDateString('en-US', {\n    year: 'numeric', month: 'long', day: 'numeric'\n  });\n  const accessedHarvard = new Date().toLocaleDateString('en-GB', {\n    day: 'numeric', month: 'long', year: 'numeric'\n  });\n  \n  let citationAPA;\n  if (ref.source_type === 'academic') {\n    citationAPA = `${authors} (${year}). ${title}. ${source}. ${doi ? 'https://doi.org/' + doi : url}`;\n  } else if (ref.source_type === 'news') {\n    citationAPA = `${authors} (${year}). ${title}. ${source}. Retrieved ${accessed}, from ${url}`;\n  } else {\n    citationAPA = `${authors} (${year}). ${title}. ${source}. Retrieved from ${url}`;\n  }\n  \n  const citationHarvard = `${authors}, ${year}. ${title}. [online] ${source}. Available at: ${url} [Accessed ${accessedHarvard}].`;\n  \n  processedRefs.push({\n    ...ref,\n    citation_apa: citationAPA,\n    citation_harvard: citationHarvard,\n    crime_type: ref.crime_type ? (Array.isArray(ref.crime_type) ? ref.crime_type : [ref.crime_type]) : null,\n    region: ref.region ? (Array.isArray(ref.region) ? ref.region : [ref.region]) : null,\n    keywords: ref.keywords ? (Array.isArray(ref.keywords) ? ref.keywords : [ref.keywords]) : null\n  });\n}\n\nreturn processedRefs.map(ref => ({ json: ref }));"
+      },
+      "id": "process-batch",
+      "name": "Process Batch References",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 860]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO criminal_references (\n  title, title_ar, authors, publication_date, source_type, source_name,\n  url, doi, crime_type, geographical_scope, region, language,\n  abstract, keywords, citation_apa, citation_harvard, relevance_score\n) VALUES (\n  $1, $2, $3, $4::date, $5::source_type_enum, $6,\n  $7, $8, $9::crime_type_enum[], $10::geographical_scope_enum, $11::region_enum[], $12,\n  $13, $14, $15, $16, $17\n) ON CONFLICT ON CONSTRAINT unique_url_or_doi DO UPDATE SET\n  last_accessed = CURRENT_TIMESTAMP\nRETURNING id",
+        "options": {
+          "queryReplacement": "={{ $json.title }}, ={{ $json.title_ar || null }}, ={{ $json.authors || null }}, ={{ $json.publication_date || null }}, ={{ $json.source_type }}, ={{ $json.source_name || null }}, ={{ $json.url || null }}, ={{ $json.doi || null }}, ={{ $json.crime_type ? '{' + $json.crime_type.join(',') + '}' : null }}, ={{ $json.geographical_scope || null }}, ={{ $json.region ? '{' + $json.region.join(',') + '}' : null }}, ={{ $json.language || 'en' }}, ={{ $json.abstract || null }}, ={{ $json.keywords ? '{' + $json.keywords.map(k => '\"' + k + '\"').join(',') + '}' : null }}, ={{ $json.citation_apa }}, ={{ $json.citation_harvard }}, ={{ $json.relevance_score || null }}"
+        }
+      },
+      "id": "insert-batch",
+      "name": "Insert Batch References",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [900, 860],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst insertedIds = items.map(item => item.json[0]?.id).filter(id => id);\n\nreturn {\n  json: {\n    success: true,\n    message: 'Batch references processed',\n    inserted_count: insertedIds.length,\n    inserted_ids: insertedIds\n  }\n};"
+      },
+      "id": "format-batch-response",
+      "name": "Format Batch Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 860]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    success: false,\n    error: 'Unknown operation',\n    message: 'Valid operations: ADD_REFERENCE, SEARCH_REFERENCES, UPDATE_LAST_ACCESSED, GET_STATISTICS, EXPORT_REFERENCES, ADD_BATCH_REFERENCES'\n  }\n};"
+      },
+      "id": "unknown-operation",
+      "name": "Unknown Operation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 1000]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "merge-responses",
+      "name": "Merge Responses",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1560, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1780, 500]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Route by Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Operation": {
+      "main": [
+        [
+          {
+            "node": "Validate & Generate Citations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Search Query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Access Timestamps",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Export Query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Process Batch References",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unknown Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Generate Citations": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate": {
+      "main": [
+        [
+          {
+            "node": "If Not Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Not Duplicate": {
+      "main": [
+        [
+          {
+            "node": "Translate Title to Arabic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Duplicate Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Translate Title to Arabic": {
+      "main": [
+        [
+          {
+            "node": "Insert Reference",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Reference": {
+      "main": [
+        [
+          {
+            "node": "Format Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Success Response": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate Response": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Search Query": {
+      "main": [
+        [
+          {
+            "node": "Execute Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Search": {
+      "main": [
+        [
+          {
+            "node": "Format Search Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Search Results": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Access Timestamps": {
+      "main": [
+        [
+          {
+            "node": "Format Access Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Access Response": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Statistics": {
+      "main": [
+        [
+          {
+            "node": "Format Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Statistics": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Export Query": {
+      "main": [
+        [
+          {
+            "node": "Execute Export Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Export Query": {
+      "main": [
+        [
+          {
+            "node": "Format Bibliography",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Bibliography": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Batch References": {
+      "main": [
+        [
+          {
+            "node": "Insert Batch References",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Batch References": {
+      "main": [
+        [
+          {
+            "node": "Format Batch Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Batch Response": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unknown Operation": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Responses": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Dubai",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Criminal Intelligence",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "Reference Management",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

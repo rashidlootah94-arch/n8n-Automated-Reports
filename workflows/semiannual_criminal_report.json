@@ -1,0 +1,271 @@
+{
+  "name": "Semiannual Criminal Report - التقرير نصف السنوي",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "triggerAtHour": 7, "triggerAtMinute": 0 }] },
+        "options": { "cronExpression": "0 7 1 1,7 *" }
+      },
+      "id": "schedule-trigger",
+      "name": "Semiannual Schedule (Jan 1 & Jul 1)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst currentMonth = now.getMonth();\nconst year = now.getFullYear();\n\nconst arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];\n\nfunction toArabicNumerals(num) {\n  const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];\n  return num.toString().split('').map(d => arabicNumerals[parseInt(d)] || d).join('');\n}\n\nlet half, halfArabic, startMonth, endMonth, reportYear;\n\nif (currentMonth === 0) {\n  half = 2; halfArabic = 'الثاني'; startMonth = 6; endMonth = 11; reportYear = year - 1;\n} else if (currentMonth === 6) {\n  half = 1; halfArabic = 'الأول'; startMonth = 0; endMonth = 5; reportYear = year;\n} else {\n  half = currentMonth < 6 ? 2 : 1;\n  halfArabic = half === 1 ? 'الأول' : 'الثاني';\n  startMonth = half === 1 ? 0 : 6;\n  endMonth = half === 1 ? 5 : 11;\n  reportYear = half === 2 && currentMonth < 6 ? year - 1 : year;\n}\n\nconst startDate = `${reportYear}-${String(startMonth + 1).padStart(2, '0')}-01`;\nconst endDate = new Date(reportYear, endMonth + 1, 0).toISOString().split('T')[0];\nconst fileName = `تقرير_نصف_سنوي_${reportYear}-H${half}.docx`;\n\nreturn {\n  json: {\n    half: half,\n    half_arabic: halfArabic,\n    year: reportYear,\n    year_arabic: toArabicNumerals(reportYear),\n    start_month: arabicMonths[startMonth],\n    end_month: arabicMonths[endMonth],\n    start_date: startDate,\n    end_date: endDate,\n    file_name: fileName,\n    report_title: `التقرير نصف السنوي - النصف ${halfArabic} ${toArabicNumerals(reportYear)}`,\n    years_comparison: [reportYear, reportYear - 1, reportYear - 2]\n  }\n};"
+      },
+      "id": "set-half-variables",
+      "name": "Set Half Variables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {},
+      "id": "parallel-branches",
+      "name": "Split Branches",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "crime statistics report semiannual" },
+            { "name": "tbs", "value": "qdr:m6" },
+            { "name": "num", "value": "20" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-statistics",
+      "name": "SERP - Statistics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200],
+      "credentials": { "httpQueryAuth": { "id": "serp-api", "name": "SERP API" } }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "global crime trends analysis" },
+            { "name": "tbs", "value": "qdr:m6" },
+            { "name": "num", "value": "20" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-trends",
+      "name": "SERP - Global Trends",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 340],
+      "credentials": { "httpQueryAuth": { "id": "serp-api", "name": "SERP API" } }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "engine", "value": "google_scholar" },
+            { "name": "q", "value": "criminology crime prevention policy" },
+            { "name": "as_ylo", "value": "={{ $('Set Half Variables').item.json.year - 1 }}" },
+            { "name": "num", "value": "25" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "scholar-research",
+      "name": "Scholar - Research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 480],
+      "credentials": { "httpQueryAuth": { "id": "serp-api", "name": "SERP API" } }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "UAE GCC crime security assessment" },
+            { "name": "tbs", "value": "qdr:m6" },
+            { "name": "gl", "value": "ae" },
+            { "name": "num", "value": "15" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-gcc",
+      "name": "SERP - GCC Assessment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 620],
+      "credentials": { "httpQueryAuth": { "id": "serp-api", "name": "SERP API" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استراتيجي متخصص في مراجعة الأداء الجنائي. قدم تحليلاً شاملاً باللغة العربية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قدم مراجعة أداء شاملة للنصف {{ $('Set Half Variables').item.json.half_arabic }} من عام {{ $('Set Half Variables').item.json.year }}:\\n\\n1. الإنجازات الرئيسية في مكافحة الجريمة\\n2. التحديات التي واجهتها الأجهزة الأمنية\\n3. مقارنة مع الأهداف المحددة\\n4. مؤشرات الأداء الرئيسية\\n\\nباللغة العربية مع إحصائيات ومصادر.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"month\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-performance",
+      "name": "Perplexity - Performance Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 200],
+      "credentials": { "httpHeaderAuth": { "id": "perplexity-api", "name": "Perplexity API" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل اتجاهات جنائية طويلة المدى. قدم تحليلاً للاتجاهات على مدى 3-5 سنوات.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قدم تحليلاً للاتجاهات طويلة المدى (3-5 سنوات) للجرائم التالية:\\n\\n1. الجرائم العنيفة\\n2. الجرائم المالية\\n3. الجرائم الإلكترونية\\n4. الاتجار بالبشر\\n5. المخدرات\\n\\nقارن بين الأعوام {{ $('Set Half Variables').item.json.years_comparison.join(' و ') }}\\n\\nباللغة العربية مع رسوم بيانية وصفية ومصادر.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"month\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-trends",
+      "name": "Perplexity - Long-term Trends",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 340],
+      "credentials": { "httpHeaderAuth": { "id": "perplexity-api", "name": "Perplexity API" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استراتيجي متخصص في التقييم الإقليمي للتهديدات الأمنية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قدم تقييماً شاملاً للتداعيات على منطقة الخليج والإمارات:\\n\\n1. التهديدات الإقليمية الرئيسية\\n2. تأثير الاتجاهات العالمية على المنطقة\\n3. نقاط القوة في المنظومة الأمنية الإماراتية\\n4. المجالات التي تحتاج تطوير\\n5. التوصيات الاستراتيجية\\n\\nباللغة العربية.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"month\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-gcc",
+      "name": "Perplexity - GCC Implications",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 480],
+      "credentials": { "httpHeaderAuth": { "id": "perplexity-api", "name": "Perplexity API" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استشرافي متخصص في التنبؤ بالتهديدات الأمنية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قدم تقريراً استشرافياً يتضمن:\\n\\n1. توقعات الجريمة للنصف القادم\\n2. التهديدات الناشئة المتوقعة\\n3. السيناريوهات المحتملة\\n4. التوصيات الاستباقية\\n5. خطة العمل للنصف القادم\\n\\nباللغة العربية مع تبرير لكل توقع.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true\n}",
+        "options": {}
+      },
+      "id": "perplexity-foresight",
+      "name": "Perplexity - Foresight Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 620],
+      "credentials": { "httpHeaderAuth": { "id": "perplexity-api", "name": "Perplexity API" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي رفيع. قم بإعداد ملخص تنفيذي.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"اكتب ملخصاً تنفيذياً شاملاً للتقرير نصف السنوي:\\n\\nمراجعة الأداء: {{ $('Perplexity - Performance Review').item.json.choices[0].message.content.substring(0, 400) }}\\n\\nالاتجاهات: {{ $('Perplexity - Long-term Trends').item.json.choices[0].message.content.substring(0, 400) }}\\n\\nالتداعيات: {{ $('Perplexity - GCC Implications').item.json.choices[0].message.content.substring(0, 400) }}\\n\\nالاستشراف: {{ $('Perplexity - Foresight Report').item.json.choices[0].message.content.substring(0, 400) }}\\n\\nاكتب 500-600 كلمة باللغة العربية.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true\n}",
+        "options": {}
+      },
+      "id": "perplexity-executive",
+      "name": "Perplexity - Executive Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 400],
+      "credentials": { "httpHeaderAuth": { "id": "perplexity-api", "name": "Perplexity API" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const halfVars = $('Set Half Variables').item.json;\nconst executiveSummary = $('Perplexity - Executive Summary').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst performance = $('Perplexity - Performance Review').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst trends = $('Perplexity - Long-term Trends').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst gcc = $('Perplexity - GCC Implications').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst foresight = $('Perplexity - Foresight Report').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\n\nconst report = `\n═══════════════════════════════════════════════════════════════\nالتقرير نصف السنوي الشامل\n───────────────────────────────────────────────────────────────\nالنصف ${halfVars.half_arabic} - ${halfVars.year_arabic}\nالفترة: ${halfVars.start_month} إلى ${halfVars.end_month} ${halfVars.year_arabic}\n═══════════════════════════════════════════════════════════════\n\nالمحتويات:\n─────────\n١. الملخص التنفيذي\n٢. مراجعة الأداء الشاملة\n٣. المقارنة التفصيلية مع السنوات الثلاث الماضية\n٤. تحليل الاتجاهات طويلة المدى\n٥. اتجاهات الجريمة العالمية الرئيسية\n٦. تقييم التداعيات على دول الخليج والإمارات\n٧. التقرير الاستشرافي\n٨. المراجع والمصادر\n\n═══════════════════════════════════════════════════════════════\n١. الملخص التنفيذي\n═══════════════════════════════════════════════════════════════\n${executiveSummary}\n\n═══════════════════════════════════════════════════════════════\n٢. مراجعة الأداء الشاملة\n═══════════════════════════════════════════════════════════════\n${performance}\n\n═══════════════════════════════════════════════════════════════\n٣-٤. تحليل الاتجاهات طويلة المدى (٣-٥ سنوات)\n═══════════════════════════════════════════════════════════════\n${trends}\n\n═══════════════════════════════════════════════════════════════\n٥-٦. تقييم التداعيات على دول الخليج والإمارات\n═══════════════════════════════════════════════════════════════\n${gcc}\n\n═══════════════════════════════════════════════════════════════\n٧. التقرير الاستشرافي\n═══════════════════════════════════════════════════════════════\n${foresight}\n\n═══════════════════════════════════════════════════════════════\n٨. المراجع والمصادر\n═══════════════════════════════════════════════════════════════\nالمراجع متوفرة في نظام قاعدة البيانات المرجعية\n\n───────────────────────────────────────────────────────────────\nنهاية التقرير\n───────────────────────────────────────────────────────────────\n`;\n\nreturn { json: { report_content: report, report_title: halfVars.report_title, file_name: halfVars.file_name, half: halfVars.half_arabic, year: halfVars.year } };"
+      },
+      "id": "generate-report",
+      "name": "Generate Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1620, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const reportData = $input.first().json;\nconst htmlContent = `<!DOCTYPE html><html dir=\"rtl\" lang=\"ar\"><head><meta charset=\"UTF-8\"><style>body{font-family:'Arial',sans-serif;direction:rtl;text-align:right;line-height:1.8;padding:40px;max-width:800px;margin:0 auto}h1,h2{color:#1a365d;border-bottom:2px solid #2c5282;padding-bottom:10px}pre{white-space:pre-wrap;font-family:'Arial',sans-serif}</style></head><body><pre>${reportData.report_content}</pre></body></html>`;\nreturn { json: { ...reportData, html_content: htmlContent }, binary: { report_html: { data: Buffer.from(htmlContent).toString('base64'), mimeType: 'text/html', fileName: reportData.file_name.replace('.docx', '.html') } } };"
+      },
+      "id": "create-document",
+      "name": "Create Document",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1860, 400]
+    },
+    {
+      "parameters": {
+        "sendTo": "rashid.lootah.94@gmail.com",
+        "subject": "={{ $json.report_title }}",
+        "emailType": "html",
+        "message": "=<div dir=\"rtl\"><h2>التقرير نصف السنوي</h2><p>مرفق تقرير النصف {{ $json.half }} من عام {{ $json.year }}</p></div>",
+        "options": { "attachmentsUi": { "attachmentsBinary": [{ "property": "report_html" }] } }
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2100, 400],
+      "credentials": { "gmailOAuth2": { "id": "gmail-oauth", "name": "Gmail OAuth2" } }
+    }
+  ],
+  "connections": {
+    "Semiannual Schedule (Jan 1 & Jul 1)": { "main": [[{ "node": "Set Half Variables", "type": "main", "index": 0 }]] },
+    "Set Half Variables": { "main": [[{ "node": "Split Branches", "type": "main", "index": 0 }]] },
+    "Split Branches": { "main": [[{ "node": "SERP - Statistics", "type": "main", "index": 0 }, { "node": "SERP - Global Trends", "type": "main", "index": 0 }, { "node": "Scholar - Research", "type": "main", "index": 0 }, { "node": "SERP - GCC Assessment", "type": "main", "index": 0 }]] },
+    "SERP - Statistics": { "main": [[{ "node": "Perplexity - Performance Review", "type": "main", "index": 0 }]] },
+    "SERP - Global Trends": { "main": [[{ "node": "Perplexity - Long-term Trends", "type": "main", "index": 0 }]] },
+    "SERP - GCC Assessment": { "main": [[{ "node": "Perplexity - GCC Implications", "type": "main", "index": 0 }]] },
+    "Scholar - Research": { "main": [[{ "node": "Perplexity - Foresight Report", "type": "main", "index": 0 }]] },
+    "Perplexity - Performance Review": { "main": [[{ "node": "Perplexity - Executive Summary", "type": "main", "index": 0 }]] },
+    "Perplexity - Long-term Trends": { "main": [[{ "node": "Perplexity - Executive Summary", "type": "main", "index": 0 }]] },
+    "Perplexity - GCC Implications": { "main": [[{ "node": "Perplexity - Executive Summary", "type": "main", "index": 0 }]] },
+    "Perplexity - Foresight Report": { "main": [[{ "node": "Perplexity - Executive Summary", "type": "main", "index": 0 }]] },
+    "Perplexity - Executive Summary": { "main": [[{ "node": "Generate Report", "type": "main", "index": 0 }]] },
+    "Generate Report": { "main": [[{ "node": "Create Document", "type": "main", "index": 0 }]] },
+    "Create Document": { "main": [[{ "node": "Send Email", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Dubai", "saveManualExecutions": true },
+  "tags": [{ "name": "Criminal Intelligence" }, { "name": "Semiannual Report" }]
+}

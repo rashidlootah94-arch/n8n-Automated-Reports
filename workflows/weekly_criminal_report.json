@@ -1,0 +1,1084 @@
+{
+  "name": "Weekly Criminal Intelligence Report - التقرير الأسبوعي للرصد الجنائي",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        },
+        "options": {
+          "cronExpression": "0 7 * * 5"
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Weekly Schedule (Friday 7AM UAE)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 560],
+      "notes": "Runs at 07:00 AM UAE time every Friday"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Set week variables in both English and Arabic\nconst now = new Date();\n\n// Arabic month names\nconst arabicMonths = [\n  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',\n  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'\n];\n\n// Convert to Arabic numerals\nfunction toArabicNumerals(num) {\n  const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];\n  return num.toString().split('').map(d => arabicNumerals[parseInt(d)] || d).join('');\n}\n\n// Get week number\nfunction getWeekNumber(d) {\n  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));\n  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));\n  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));\n  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);\n  return weekNo;\n}\n\n// Get week start and end dates\nconst weekStart = new Date(now);\nweekStart.setDate(now.getDate() - 6); // Start of the week (Sunday)\nconst weekEnd = now;\n\nconst year = now.getFullYear();\nconst weekNumber = getWeekNumber(now);\n\nconst weekStartArabic = `${toArabicNumerals(weekStart.getDate())} ${arabicMonths[weekStart.getMonth()]}`;\nconst weekEndArabic = `${toArabicNumerals(weekEnd.getDate())} ${arabicMonths[weekEnd.getMonth()]} ${toArabicNumerals(year)}`;\n\nconst fileName = `تقرير_أسبوعي_${year}-W${String(weekNumber).padStart(2, '0')}.docx`;\n\nreturn {\n  json: {\n    week_start_arabic: weekStartArabic,\n    week_end_arabic: weekEndArabic,\n    week_start_english: weekStart.toISOString().split('T')[0],\n    week_end_english: weekEnd.toISOString().split('T')[0],\n    year: year,\n    week_number: weekNumber,\n    week_number_arabic: toArabicNumerals(weekNumber),\n    file_name: fileName,\n    report_title: `التقرير الأسبوعي للرصد الجنائي - الأسبوع ${toArabicNumerals(weekNumber)} - ${year}`,\n    search_recency: 'week'\n  }\n};"
+      },
+      "id": "set-week-variables",
+      "name": "Set Week Variables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 560]
+    },
+    {
+      "parameters": {},
+      "id": "parallel-branches",
+      "name": "Split into Parallel Branches",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [680, 560]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_scholar"
+            },
+            {
+              "name": "q",
+              "value": "criminology research"
+            },
+            {
+              "name": "as_ylo",
+              "value": "={{ $('Set Week Variables').item.json.year }}"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "scholar-criminology",
+      "name": "Scholar - Criminology Research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 140],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_scholar"
+            },
+            {
+              "name": "q",
+              "value": "Journal of Criminal Justice"
+            },
+            {
+              "name": "as_ylo",
+              "value": "={{ $('Set Week Variables').item.json.year }}"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "scholar-jcj",
+      "name": "Scholar - Journal of Criminal Justice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 280],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_scholar"
+            },
+            {
+              "name": "q",
+              "value": "crime prevention techniques"
+            },
+            {
+              "name": "as_ylo",
+              "value": "={{ $('Set Week Variables').item.json.year }}"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "scholar-prevention",
+      "name": "Scholar - Crime Prevention",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 420],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_scholar"
+            },
+            {
+              "name": "q",
+              "value": "cybercrime analysis digital forensics"
+            },
+            {
+              "name": "as_ylo",
+              "value": "={{ $('Set Week Variables').item.json.year }}"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "scholar-cybercrime",
+      "name": "Scholar - Cybercrime",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 560],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_scholar"
+            },
+            {
+              "name": "q",
+              "value": "financial crime fraud money laundering"
+            },
+            {
+              "name": "as_ylo",
+              "value": "={{ $('Set Week Variables').item.json.year }}"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "scholar-financial",
+      "name": "Scholar - Financial Crime",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 700],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "UNODC reports transnational crime"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:w"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-unodc-reports",
+      "name": "SERP - UNODC Reports",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 880],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "INTERPOL statistics transnational crime organized crime"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:w"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-interpol-stats",
+      "name": "SERP - INTERPOL Statistics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 1020],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "FBI Uniform Crime Reports UCR crime statistics"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:w"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-fbi-ucr",
+      "name": "SERP - FBI UCR",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 1160],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "modern investigative techniques law enforcement"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:w"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-investigative",
+      "name": "SERP - Investigative Techniques",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 1300],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "community crime prevention programs neighborhood safety"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:w"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-community",
+      "name": "SERP - Community Prevention",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 1440],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge all academic research results\nconst criminology = $('Scholar - Criminology Research').item?.json?.organic_results || [];\nconst jcj = $('Scholar - Journal of Criminal Justice').item?.json?.organic_results || [];\nconst prevention = $('Scholar - Crime Prevention').item?.json?.organic_results || [];\nconst cybercrime = $('Scholar - Cybercrime').item?.json?.organic_results || [];\nconst financial = $('Scholar - Financial Crime').item?.json?.organic_results || [];\n\nconst allStudies = [...criminology, ...jcj, ...prevention, ...cybercrime, ...financial];\n\n// Deduplicate by title\nconst seen = new Set();\nconst uniqueStudies = allStudies.filter(study => {\n  const key = study.title?.toLowerCase();\n  if (seen.has(key)) return false;\n  seen.add(key);\n  return true;\n});\n\n// Format studies for Perplexity analysis\nconst formattedStudies = uniqueStudies.slice(0, 15).map((s, i) => ({\n  index: i + 1,\n  title: s.title,\n  authors: s.publication_info?.authors || 'Unknown',\n  source: s.publication_info?.summary || s.source,\n  link: s.link,\n  snippet: s.snippet,\n  cited_by: s.inline_links?.cited_by?.total || 0\n}));\n\nreturn {\n  json: {\n    studies_count: formattedStudies.length,\n    studies: formattedStudies\n  }\n};"
+      },
+      "id": "merge-academic",
+      "name": "Merge Academic Research",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 420]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge international reports\nconst unodc = $('SERP - UNODC Reports').item?.json?.organic_results || [];\nconst interpol = $('SERP - INTERPOL Statistics').item?.json?.organic_results || [];\nconst fbi = $('SERP - FBI UCR').item?.json?.organic_results || [];\n\nreturn {\n  json: {\n    unodc_reports: unodc.slice(0, 5).map(r => ({\n      title: r.title,\n      link: r.link,\n      snippet: r.snippet\n    })),\n    interpol_reports: interpol.slice(0, 5).map(r => ({\n      title: r.title,\n      link: r.link,\n      snippet: r.snippet\n    })),\n    fbi_reports: fbi.slice(0, 5).map(r => ({\n      title: r.title,\n      link: r.link,\n      snippet: r.snippet\n    }))\n  }\n};"
+      },
+      "id": "merge-intl-reports",
+      "name": "Merge International Reports",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 1020]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge best practices results\nconst investigative = $('SERP - Investigative Techniques').item?.json?.organic_results || [];\nconst community = $('SERP - Community Prevention').item?.json?.organic_results || [];\n\nreturn {\n  json: {\n    investigative_techniques: investigative.slice(0, 5).map(r => ({\n      title: r.title,\n      link: r.link,\n      snippet: r.snippet\n    })),\n    community_approaches: community.slice(0, 5).map(r => ({\n      title: r.title,\n      link: r.link,\n      snippet: r.snippet\n    }))\n  }\n};"
+      },
+      "id": "merge-best-practices",
+      "name": "Merge Best Practices",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 1370]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت ملخص أبحاث أكاديمية متخصص في علم الجريمة. قدم ملخصات دقيقة ومهنية باللغة العربية لكل دراسة.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتقديم ملخص لكل دراسة من الدراسات التالية (٣٠٠ كلمة كحد أقصى لكل دراسة):\\n\\n{{ JSON.stringify($('Merge Academic Research').item.json.studies) }}\\n\\nلكل دراسة، قدم:\\n١. عنوان الدراسة بالعربية\\n٢. المؤلفون والمصدر\\n٣. ملخص (٣٠٠ كلمة كحد أقصى)\\n٤. النتائج الرئيسية\\n٥. المنهجية المستخدمة\\n٦. الصلة بالسياق الإماراتي\\n٧. التوصية: هل تستحق هذه الدراسة مراجعة معمقة؟ (نعم/لا مع السبب)\\n٨. المرجع بتنسيق APA\\n\\nقدم الملخصات باللغة العربية بشكل منظم.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"week\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-studies",
+      "name": "Perplexity - Summarize Studies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 420],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي جنائي دولي متخصص في تقارير المنظمات الدولية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل التقارير والإحصائيات الدولية التالية وتقديم تحليل شامل للأنماط الجنائية العالمية:\\n\\nتقارير UNODC:\\n{{ JSON.stringify($('Merge International Reports').item.json.unodc_reports) }}\\n\\nإحصائيات الإنتربول:\\n{{ JSON.stringify($('Merge International Reports').item.json.interpol_reports) }}\\n\\nتقارير FBI:\\n{{ JSON.stringify($('Merge International Reports').item.json.fbi_reports) }}\\n\\nقدم تحليلاً يشمل:\\n١. الاتجاهات الجنائية الرئيسية عالمياً\\n٢. الجرائم العابرة للحدود\\n٣. التهديدات الناشئة\\n٤. الإحصائيات الرئيسية\\n\\nباللغة العربية مع ذكر المصادر.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"week\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-global-patterns",
+      "name": "Perplexity - Global Patterns",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 1020],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل مقارن متخصص في السياسات الأمنية والجنائية في منطقة الخليج.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قدم تحليلاً مقارناً شاملاً يتضمن:\\n\\n١. الجرائم الناشئة عالمياً واحتمالية حدوثها في الإمارات:\\n   - ما هي الجرائم الجديدة التي تظهر عالمياً؟\\n   - ما مدى احتمالية وصولها إلى الإمارات؟\\n   - ما هي عوامل الحماية الموجودة؟\\n\\n٢. مقارنة معدلات الجريمة:\\n   - الإمارات مقارنة بدول مجلس التعاون الخليجي\\n   - الإمارات مقارنة بسنغافورة\\n   - الإمارات مقارنة بهونغ كونغ\\n\\n٣. عوامل النجاح في الدول منخفضة الجريمة:\\n   - ما هي العوامل المشتركة؟\\n   - ما الذي يمكن للإمارات تطبيقه إضافياً؟\\n\\nقدم التحليل باللغة العربية مع إحصائيات ومصادر موثوقة.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"week\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-uae-comparison",
+      "name": "Perplexity - UAE Comparison",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 700],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت خبير في أفضل الممارسات الدولية لمكافحة الجريمة والوقاية منها.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قدم ملخصاً لأفضل الممارسات الدولية في مجال:\\n\\n١. التقنيات التحقيقية الحديثة:\\n{{ JSON.stringify($('Merge Best Practices').item.json.investigative_techniques) }}\\n\\n٢. مناهج الوقاية المجتمعية من الجريمة:\\n{{ JSON.stringify($('Merge Best Practices').item.json.community_approaches) }}\\n\\nقدم:\\n- ملخص لكل تقنية أو منهج\\n- أمثلة على التطبيق الناجح\\n- إمكانية التطبيق في السياق الإماراتي\\n- التوصيات\\n\\nباللغة العربية.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"week\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-best-practices",
+      "name": "Perplexity - Best Practices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 1370],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي جنائي رفيع المستوى. قم بإعداد ملخص تنفيذي شامل للتقرير الأسبوعي.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"اكتب ملخصاً تنفيذياً شاملاً للتقرير الأسبوعي يتضمن:\\n\\n1. أهم 5 دراسات أكاديمية هذا الأسبوع\\n2. الاتجاهات الجنائية العالمية الرئيسية\\n3. الصلة بالسياق الإماراتي\\n4. التوصيات الاستراتيجية\\n\\nملخص الدراسات: {{ $('Perplexity - Summarize Studies').item.json.choices[0].message.content.substring(0, 800) }}\\n\\nالأنماط العالمية: {{ $('Perplexity - Global Patterns').item.json.choices[0].message.content.substring(0, 500) }}\\n\\nمقارنة الإمارات: {{ $('Perplexity - UAE Comparison').item.json.choices[0].message.content.substring(0, 500) }}\\n\\nاكتب الملخص باللغة العربية بشكل موجز ومهني (300-400 كلمة).\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true\n}",
+        "options": {}
+      },
+      "id": "perplexity-executive-summary",
+      "name": "Perplexity - Executive Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1620, 700],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect all sources for reference database\nconst studies = $('Merge Academic Research').item?.json?.studies || [];\nconst intlReports = $('Merge International Reports').item?.json || {};\nconst bestPractices = $('Merge Best Practices').item?.json || {};\n\nconst references = [];\n\n// Process academic studies\nstudies.forEach(study => {\n  if (study.link) {\n    references.push({\n      title: study.title,\n      url: study.link,\n      source_type: 'academic',\n      source_name: study.source,\n      authors: study.authors,\n      publication_date: new Date().toISOString().split('T')[0],\n      crime_type: ['other'],\n      region: ['Global'],\n      geographical_scope: 'international',\n      relevance_score: study.cited_by > 10 ? 5 : study.cited_by > 5 ? 4 : 3\n    });\n  }\n});\n\n// Process international reports\n['unodc_reports', 'interpol_reports', 'fbi_reports'].forEach(key => {\n  const reports = intlReports[key] || [];\n  reports.forEach(report => {\n    if (report.link) {\n      references.push({\n        title: report.title,\n        url: report.link,\n        source_type: 'international_org',\n        source_name: key.replace('_reports', '').toUpperCase(),\n        publication_date: new Date().toISOString().split('T')[0],\n        crime_type: ['other'],\n        region: ['Global'],\n        geographical_scope: 'international'\n      });\n    }\n  });\n});\n\n// Process best practices\n['investigative_techniques', 'community_approaches'].forEach(key => {\n  const items = bestPractices[key] || [];\n  items.forEach(item => {\n    if (item.link) {\n      references.push({\n        title: item.title,\n        url: item.link,\n        source_type: 'governmental',\n        publication_date: new Date().toISOString().split('T')[0],\n        crime_type: ['other'],\n        region: ['Global'],\n        geographical_scope: 'international'\n      });\n    }\n  });\n});\n\nreturn {\n  json: {\n    operation: 'ADD_BATCH_REFERENCES',\n    references: references.slice(0, 40)\n  }\n};"
+      },
+      "id": "prepare-references",
+      "name": "Prepare References for DB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1860, 1200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.N8N_WEBHOOK_URL || 'http://localhost:5678'}}/webhook/reference-manager",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "save-references",
+      "name": "Save References to DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2080, 1200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate the complete Arabic weekly report\nconst weekVars = $('Set Week Variables').item.json;\nconst studiesSummary = $('Perplexity - Summarize Studies').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst globalPatterns = $('Perplexity - Global Patterns').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst uaeComparison = $('Perplexity - UAE Comparison').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst bestPractices = $('Perplexity - Best Practices').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst executiveSummary = $('Perplexity - Executive Summary').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\n\n// Collect citations\nconst studiesCitations = $('Perplexity - Summarize Studies').item?.json?.citations || [];\nconst globalCitations = $('Perplexity - Global Patterns').item?.json?.citations || [];\nconst uaeCitations = $('Perplexity - UAE Comparison').item?.json?.citations || [];\nconst practicesCitations = $('Perplexity - Best Practices').item?.json?.citations || [];\n\nconst allCitations = [...new Set([...studiesCitations, ...globalCitations, ...uaeCitations, ...practicesCitations])];\n\nlet academicRefs = '';\nlet governmentalRefs = '';\nlet intlOrgRefs = '';\n\nallCitations.forEach((cite, i) => {\n  if (cite.includes('scholar') || cite.includes('journal') || cite.includes('research')) {\n    academicRefs += `${i + 1}. ${cite}\\n`;\n  } else if (cite.includes('gov') || cite.includes('fbi')) {\n    governmentalRefs += `${i + 1}. ${cite}\\n`;\n  } else {\n    intlOrgRefs += `${i + 1}. ${cite}\\n`;\n  }\n});\n\nconst studiesCount = $('Merge Academic Research').item?.json?.studies_count || 0;\n\nconst report = `\n═══════════════════════════════════════════════════════════════\nالتقرير الأسبوعي للرصد الجنائي والأمني\n───────────────────────────────────────────────────────────────\nالأسبوع المنتهي في: ${weekVars.week_end_arabic}\nالأسبوع رقم: ${weekVars.week_number_arabic} من عام ${weekVars.year}\nوقت الإصدار: ٠٧:٠٠ صباحاً - الجمعة\n═══════════════════════════════════════════════════════════════\n\nالمحتويات:\n─────────\n١. ملخص تنفيذي\n٢. ملخصات الأبحاث والدراسات الجديدة\n٣. تحليل الأنماط الجنائية العالمية\n٤. مقارنة السياق الإماراتي\n٥. أفضل الممارسات الدولية\n٦. المراجع والمصادر\n\n═══════════════════════════════════════════════════════════════\n١. الملخص التنفيذي\n═══════════════════════════════════════════════════════════════\n${executiveSummary}\n\n═══════════════════════════════════════════════════════════════\n٢. ملخصات الأبحاث والدراسات الجديدة\n═══════════════════════════════════════════════════════════════\nعدد الدراسات المراجعة هذا الأسبوع: ${studiesCount}\n(ملخص لا يتجاوز ٣٠٠ كلمة لكل دراسة)\n\n${studiesSummary}\n\n═══════════════════════════════════════════════════════════════\n٣. تحليل الأنماط الجنائية العالمية\n═══════════════════════════════════════════════════════════════\n${globalPatterns}\n\n═══════════════════════════════════════════════════════════════\n٤. مقارنة السياق الإماراتي\n═══════════════════════════════════════════════════════════════\n${uaeComparison}\n\n═══════════════════════════════════════════════════════════════\n٥. أفضل الممارسات الدولية\n═══════════════════════════════════════════════════════════════\n${bestPractices}\n\n═══════════════════════════════════════════════════════════════\n٦. المراجع والمصادر\n═══════════════════════════════════════════════════════════════\nتصنيف المراجع:\n\nأ. المصادر الأكاديمية:\n${academicRefs || 'متوفرة في قاعدة البيانات المرجعية'}\n\nب. المصادر الحكومية:\n${governmentalRefs || 'متوفرة في قاعدة البيانات المرجعية'}\n\nج. مصادر المنظمات الدولية:\n${intlOrgRefs || 'متوفرة في قاعدة البيانات المرجعية'}\n\n───────────────────────────────────────────────────────────────\nنهاية التقرير\nتم إعداد هذا التقرير آلياً بواسطة نظام الرصد الجنائي\n───────────────────────────────────────────────────────────────\n`;\n\nreturn {\n  json: {\n    report_content: report,\n    report_title: weekVars.report_title,\n    file_name: weekVars.file_name,\n    week_end: weekVars.week_end_english\n  }\n};"
+      },
+      "id": "generate-report",
+      "name": "Generate Arabic Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2080, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create HTML document\nconst reportData = $input.first().json;\n\nconst htmlContent = `\n<!DOCTYPE html>\n<html dir=\"rtl\" lang=\"ar\">\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    body {\n      font-family: 'Arial', 'Tahoma', sans-serif;\n      direction: rtl;\n      text-align: right;\n      line-height: 1.8;\n      padding: 40px;\n      max-width: 800px;\n      margin: 0 auto;\n    }\n    h1, h2, h3 {\n      color: #1a365d;\n      border-bottom: 2px solid #2c5282;\n      padding-bottom: 10px;\n    }\n    h1 {\n      font-size: 24px;\n      text-align: center;\n    }\n    h2 {\n      font-size: 18px;\n      margin-top: 30px;\n    }\n    .header {\n      background-color: #2c5282;\n      color: white;\n      padding: 20px;\n      text-align: center;\n      margin-bottom: 30px;\n    }\n    .section {\n      margin-bottom: 25px;\n      padding: 15px;\n      background-color: #f7fafc;\n      border-radius: 5px;\n    }\n    .study-card {\n      border: 1px solid #e2e8f0;\n      padding: 15px;\n      margin: 10px 0;\n      border-radius: 5px;\n      background-color: #fff;\n    }\n    .footer {\n      margin-top: 40px;\n      padding-top: 20px;\n      border-top: 2px solid #2c5282;\n      text-align: center;\n      font-size: 12px;\n      color: #666;\n    }\n    pre {\n      white-space: pre-wrap;\n      font-family: 'Arial', 'Tahoma', sans-serif;\n    }\n  </style>\n</head>\n<body>\n  <pre>${reportData.report_content}</pre>\n</body>\n</html>\n`;\n\nreturn {\n  json: {\n    ...reportData,\n    html_content: htmlContent\n  },\n  binary: {\n    report_html: {\n      data: Buffer.from(htmlContent).toString('base64'),\n      mimeType: 'text/html',\n      fileName: reportData.file_name.replace('.docx', '.html')\n    }\n  }\n};"
+      },
+      "id": "create-document",
+      "name": "Create Document",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2300, 700]
+    },
+    {
+      "parameters": {
+        "sendTo": "rashid.lootah.94@gmail.com",
+        "subject": "={{ $json.report_title }}",
+        "emailType": "html",
+        "message": "=<div dir=\"rtl\" style=\"font-family: Arial, Tahoma, sans-serif; text-align: right;\">\n<h2>التقرير الأسبوعي للرصد الجنائي والأمني</h2>\n<p>مرفق التقرير الأسبوعي للأسبوع المنتهي في {{ $json.week_end }}</p>\n<p>يتضمن هذا التقرير:</p>\n<ul>\n<li>ملخصات الأبحاث والدراسات الجديدة</li>\n<li>تحليل الأنماط الجنائية العالمية</li>\n<li>مقارنة السياق الإماراتي</li>\n<li>أفضل الممارسات الدولية</li>\n</ul>\n<p>يرجى الاطلاع على المرفق للتفاصيل الكاملة.</p>\n<hr>\n<p style=\"font-size: 12px; color: #666;\">تم إرسال هذا التقرير آلياً بواسطة نظام الرصد الجنائي</p>\n</div>",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "report_html"
+              }
+            ]
+          }
+        }
+      },
+      "id": "send-email",
+      "name": "Send Report Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2520, 700],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-oauth",
+          "name": "Gmail OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-email-sent",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-success",
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2740, 700]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    success: true,\n    message: 'Weekly criminal intelligence report sent successfully',\n    week_end: $('Set Week Variables').item.json.week_end_english,\n    recipient: 'rashid.lootah.94@gmail.com',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "success-log",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2960, 600]
+    },
+    {
+      "parameters": {
+        "sendTo": "rashid.lootah.94@gmail.com",
+        "subject": "⚠️ فشل إرسال التقرير الأسبوعي للرصد الجنائي",
+        "emailType": "html",
+        "message": "=<div dir=\"rtl\" style=\"font-family: Arial, Tahoma, sans-serif; text-align: right;\">\n<h2>تنبيه: فشل تنفيذ سير العمل</h2>\n<p><strong>اسم سير العمل:</strong> التقرير الأسبوعي للرصد الجنائي</p>\n<p><strong>الأسبوع:</strong> {{ $('Set Week Variables').item.json.week_number }}</p>\n<p><strong>الوقت:</strong> {{ new Date().toISOString() }}</p>\n<p>يرجى مراجعة سجلات n8n للحصول على مزيد من التفاصيل.</p>\n</div>",
+        "options": {}
+      },
+      "id": "error-notification",
+      "name": "Send Error Notification",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2960, 800],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-oauth",
+          "name": "Gmail OAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Weekly Schedule (Friday 7AM UAE)": {
+      "main": [
+        [
+          {
+            "node": "Set Week Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Week Variables": {
+      "main": [
+        [
+          {
+            "node": "Split into Parallel Branches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split into Parallel Branches": {
+      "main": [
+        [
+          {
+            "node": "Scholar - Criminology Research",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Scholar - Journal of Criminal Justice",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Scholar - Crime Prevention",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Scholar - Cybercrime",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Scholar - Financial Crime",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - UNODC Reports",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - INTERPOL Statistics",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - FBI UCR",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - Investigative Techniques",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - Community Prevention",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scholar - Criminology Research": {
+      "main": [
+        [
+          {
+            "node": "Merge Academic Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scholar - Journal of Criminal Justice": {
+      "main": [
+        [
+          {
+            "node": "Merge Academic Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scholar - Crime Prevention": {
+      "main": [
+        [
+          {
+            "node": "Merge Academic Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scholar - Cybercrime": {
+      "main": [
+        [
+          {
+            "node": "Merge Academic Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scholar - Financial Crime": {
+      "main": [
+        [
+          {
+            "node": "Merge Academic Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - UNODC Reports": {
+      "main": [
+        [
+          {
+            "node": "Merge International Reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - INTERPOL Statistics": {
+      "main": [
+        [
+          {
+            "node": "Merge International Reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - FBI UCR": {
+      "main": [
+        [
+          {
+            "node": "Merge International Reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Investigative Techniques": {
+      "main": [
+        [
+          {
+            "node": "Merge Best Practices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Community Prevention": {
+      "main": [
+        [
+          {
+            "node": "Merge Best Practices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Academic Research": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Summarize Studies",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Perplexity - UAE Comparison",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge International Reports": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Global Patterns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Best Practices": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Best Practices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Summarize Studies": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Executive Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Global Patterns": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Executive Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare References for DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - UAE Comparison": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Executive Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Best Practices": {
+      "main": [
+        [
+          {
+            "node": "Generate Arabic Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Executive Summary": {
+      "main": [
+        [
+          {
+            "node": "Generate Arabic Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare References for DB": {
+      "main": [
+        [
+          {
+            "node": "Save References to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Arabic Report": {
+      "main": [
+        [
+          {
+            "node": "Create Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Document": {
+      "main": [
+        [
+          {
+            "node": "Send Report Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Report Email": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Dubai",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Criminal Intelligence",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "Weekly Report",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

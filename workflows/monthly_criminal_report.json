@@ -1,0 +1,936 @@
+{
+  "name": "Monthly Criminal Analysis Report - التقرير الشهري للتحليل الجنائي",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7,
+              "triggerAtMinute": 0
+            }
+          ]
+        },
+        "options": {
+          "cronExpression": "0 7 1 * *"
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Monthly Schedule (1st of month 7AM UAE)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 560],
+      "notes": "Runs at 07:00 AM UAE time on the 1st of each month"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Set month variables\nconst now = new Date();\n// Get previous month (since we're reporting on completed month)\nconst reportMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);\n\nconst arabicMonths = [\n  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',\n  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'\n];\n\nfunction toArabicNumerals(num) {\n  const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];\n  return num.toString().split('').map(d => arabicNumerals[parseInt(d)] || d).join('');\n}\n\nconst year = reportMonth.getFullYear();\nconst month = reportMonth.getMonth();\nconst monthName = arabicMonths[month];\nconst monthEnglish = String(month + 1).padStart(2, '0');\n\nconst fileName = `تقرير_شهري_${year}-${monthEnglish}.docx`;\n\nreturn {\n  json: {\n    month_arabic: monthName,\n    month_number: month + 1,\n    month_english: monthEnglish,\n    year: year,\n    year_arabic: toArabicNumerals(year),\n    file_name: fileName,\n    report_title: `التقرير الشهري للتحليل الجنائي المعمق - ${monthName} ${toArabicNumerals(year)}`,\n    search_recency: 'month'\n  }\n};"
+      },
+      "id": "set-month-variables",
+      "name": "Set Month Variables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 560]
+    },
+    {
+      "parameters": {},
+      "id": "parallel-branches",
+      "name": "Split into Crime Categories",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [680, 560]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "violent crime trends theft homicide statistics"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:m"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-violent",
+      "name": "SERP - Violent Crime",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 100],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "financial crime fraud money laundering FATF"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:m"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-financial",
+      "name": "SERP - Financial Crime",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 260],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "human trafficking UNODC routes statistics"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:m"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-trafficking",
+      "name": "SERP - Human Trafficking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 420],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "cybercrime hacking cyber defamation statistics"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:m"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-cyber",
+      "name": "SERP - Cybercrime",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 580],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "AI enabled crime deepfake fraud artificial intelligence criminal"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:m"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-ai-crime",
+      "name": "SERP - AI-Enabled Crime",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 740],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "crimes against children child exploitation online safety INTERPOL"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:m"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-children",
+      "name": "SERP - Crimes Against Children",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 900],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://serpapi.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "UAE crime statistics Dubai police Abu Dhabi security"
+            },
+            {
+              "name": "tbm",
+              "value": "nws"
+            },
+            {
+              "name": "tbs",
+              "value": "qdr:m"
+            },
+            {
+              "name": "gl",
+              "value": "ae"
+            },
+            {
+              "name": "hl",
+              "value": "ar"
+            },
+            {
+              "name": "num",
+              "value": "15"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "serp-uae-monthly",
+      "name": "SERP - UAE Monthly",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 1060],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "serp-api",
+          "name": "SERP API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل جنائي متخصص في الجرائم العنيفة. قدم تحليلاً شاملاً باللغة العربية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل شامل للجرائم العنيفة خلال الشهر الماضي:\\n\\nالمصادر:\\n{{ JSON.stringify($('SERP - Violent Crime').item.json.news_results || []) }}\\n\\nقدم تحليلاً يشمل:\\n\\n٢.١ السرقة:\\n- الاتجاهات العالمية\\n- الإحصائيات المتوفرة\\n- الأنماط الجغرافية\\n\\n٢.٢ القتل:\\n- معدلات القتل عالمياً\\n- الدوافع الرئيسية\\n- المناطق الأكثر تأثراً\\n\\n٢.٣ الاغتصاب:\\n- الإحصائيات المتاحة\\n- التحديات في الإبلاغ\\n\\n٢.٤ الاختطاف:\\n- الحالات المسجلة\\n- الأنماط والدوافع\\n\\nقدم التحليل باللغة العربية مع إحصائيات ومصادر.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"month\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-violent",
+      "name": "Perplexity - Violent Crime Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل جنائي متخصص في الجرائم المالية وغسيل الأموال. قدم تحليلاً شاملاً باللغة العربية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل شامل للجرائم المالية خلال الشهر الماضي:\\n\\nالمصادر:\\n{{ JSON.stringify($('SERP - Financial Crime').item.json.news_results || []) }}\\n\\nقدم تحليلاً يشمل:\\n\\n٣.١ أنماط الاحتيال العالمية:\\n- أنواع الاحتيال الشائعة\\n- الأساليب الجديدة\\n- الخسائر المالية المقدرة\\n\\n٣.٢ غسيل الأموال:\\n- تقارير FATF\\n- الدول عالية المخاطر\\n- الآليات المستخدمة\\n\\n٣.٣ الجرائم المصرفية:\\n- الاختراقات والتهديدات\\n- الإجراءات الوقائية\\n\\n٣.٤ التأثيرات المحتملة على الإمارات:\\n- المخاطر المحددة\\n- نقاط القوة في النظام المالي الإماراتي\\n\\nباللغة العربية مع مصادر.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"month\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-financial",
+      "name": "Perplexity - Financial Crime Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 260],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل متخصص في جرائم الاتجار بالبشر. قدم تحليلاً شاملاً باللغة العربية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل شامل للاتجار بالبشر خلال الشهر الماضي:\\n\\nالمصادر:\\n{{ JSON.stringify($('SERP - Human Trafficking').item.json.news_results || []) }}\\n\\nقدم تحليلاً يشمل:\\n\\n٤.١ الطرق العالمية:\\n- طرق التهريب الرئيسية\\n- الدول المصدر والمستقبلة\\n- التغيرات في الأنماط\\n\\n٤.٢ التهديدات الإقليمية:\\n- التهديدات في منطقة الشرق الأوسط\\n- التهديدات لدول الخليج\\n- الفئات الأكثر عرضة للخطر\\n\\n٤.٣ جهود المكافحة:\\n- الإجراءات الدولية\\n- التعاون الإقليمي\\n\\nباللغة العربية مع مصادر موثوقة.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"month\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-trafficking",
+      "name": "Perplexity - Trafficking Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 420],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل متخصص في الجرائم الإلكترونية والأمن السيبراني. قدم تحليلاً شاملاً باللغة العربية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل شامل للجرائم الإلكترونية خلال الشهر الماضي:\\n\\nالمصادر:\\n{{ JSON.stringify($('SERP - Cybercrime').item.json.news_results || []) }}\\n\\nقدم تحليلاً يشمل:\\n\\n٥.١ التشهير الإلكتروني:\\n- الحالات البارزة\\n- الإطار القانوني\\n- التأثير على الضحايا\\n\\n٥.٢ الإهانات عبر الإنترنت:\\n- منصات التواصل الاجتماعي\\n- الجرائم المرتبطة\\n\\n٥.٣ القرصنة والجرائم ذات الصلة:\\n- الهجمات السيبرانية الكبرى\\n- برامج الفدية\\n- اختراقات البيانات\\n- التهديدات الناشئة\\n\\nباللغة العربية مع إحصائيات ومصادر.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"month\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-cyber",
+      "name": "Perplexity - Cybercrime Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 580],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل متخصص في جرائم الذكاء الاصطناعي والتقنيات الناشئة. قدم تحليلاً شاملاً باللغة العربية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل شامل لجرائم الذكاء الاصطناعي خلال الشهر الماضي:\\n\\nالمصادر:\\n{{ JSON.stringify($('SERP - AI-Enabled Crime').item.json.news_results || []) }}\\n\\nقدم تحليلاً يشمل:\\n\\n٦.١ استخدام الذكاء الاصطناعي في النشاط الإجرامي:\\n- أنواع الجرائم المدعومة بالذكاء الاصطناعي\\n- التطور في الأساليب\\n\\n٦.٢ التزييف العميق (Deepfakes):\\n- الحالات المسجلة\\n- التأثير على الأفراد والمؤسسات\\n- صعوبات الكشف\\n\\n٦.٣ الاحتيال المدعوم بالذكاء الاصطناعي:\\n- احتيال الصوت والصورة\\n- الهندسة الاجتماعية المتقدمة\\n- التوقعات المستقبلية\\n\\n٦.٤ إجراءات المكافحة:\\n- التقنيات المضادة\\n- الإطار القانوني\\n\\nباللغة العربية مع مصادر.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"month\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-ai-crime",
+      "name": "Perplexity - AI Crime Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 740],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل متخصص في حماية الأطفال والجرائم ضدهم. قدم تحليلاً شاملاً باللغة العربية مع مراعاة الحساسية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل شامل للجرائم ضد الأطفال خلال الشهر الماضي:\\n\\nالمصادر:\\n{{ JSON.stringify($('SERP - Crimes Against Children').item.json.news_results || []) }}\\n\\nقدم تحليلاً يشمل:\\n\\n٧.١ الجرائم الإلكترونية ضد الأطفال:\\n- الاستغلال عبر الإنترنت\\n- التنمر الإلكتروني\\n- الابتزاز الإلكتروني\\n- جهود الحماية الرقمية\\n\\n٧.٢ الجرائم التقليدية:\\n- العنف ضد الأطفال\\n- الإهمال\\n- الاتجار بالأطفال\\n\\n٧.٣ جهود الحماية:\\n- المبادرات الدولية (INTERPOL, UNICEF)\\n- البرامج الوقائية\\n- دور الأسرة والمجتمع\\n\\nباللغة العربية مع مصادر موثوقة.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"month\"\n}",
+        "options": {}
+      },
+      "id": "perplexity-children",
+      "name": "Perplexity - Children Crime Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 900],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي جنائي رفيع المستوى. قم بإعداد ملخص تنفيذي شامل للتقرير الشهري.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"اكتب ملخصاً تنفيذياً شاملاً للتقرير الشهري للتحليل الجنائي يتضمن:\\n\\n1. أهم التطورات في كل فئة جنائية:\\n   - الجرائم العنيفة\\n   - الجرائم المالية\\n   - الاتجار بالبشر\\n   - الجرائم الإلكترونية\\n   - جرائم الذكاء الاصطناعي\\n   - الجرائم ضد الأطفال\\n\\n2. التهديدات الناشئة\\n3. التوصيات الاستراتيجية\\n\\nملخص الجرائم العنيفة: {{ $('Perplexity - Violent Crime Analysis').item.json.choices[0].message.content.substring(0, 400) }}\\n\\nملخص الجرائم المالية: {{ $('Perplexity - Financial Crime Analysis').item.json.choices[0].message.content.substring(0, 400) }}\\n\\nملخص الجرائم الإلكترونية: {{ $('Perplexity - Cybercrime Analysis').item.json.choices[0].message.content.substring(0, 400) }}\\n\\nاكتب الملخص باللغة العربية بشكل موجز ومهني (400-500 كلمة).\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true\n}",
+        "options": {}
+      },
+      "id": "perplexity-executive-summary",
+      "name": "Perplexity - Executive Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 500],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect all sources for reference database\nconst violentNews = $('SERP - Violent Crime').item?.json?.news_results || [];\nconst financialNews = $('SERP - Financial Crime').item?.json?.news_results || [];\nconst traffickingNews = $('SERP - Human Trafficking').item?.json?.news_results || [];\nconst cyberNews = $('SERP - Cybercrime').item?.json?.news_results || [];\nconst aiNews = $('SERP - AI-Enabled Crime').item?.json?.news_results || [];\nconst childrenNews = $('SERP - Crimes Against Children').item?.json?.news_results || [];\n\nconst references = [];\n\nconst crimeTypeMap = {\n  violent: violentNews,\n  financial: financialNews,\n  trafficking: traffickingNews,\n  cyber: cyberNews,\n  ai_enabled: aiNews,\n  children: childrenNews\n};\n\nObject.entries(crimeTypeMap).forEach(([crimeType, news]) => {\n  news.slice(0, 5).forEach(item => {\n    if (item.link) {\n      references.push({\n        title: item.title,\n        url: item.link,\n        source_type: 'news',\n        source_name: item.source?.name || item.source,\n        publication_date: new Date().toISOString().split('T')[0],\n        crime_type: [crimeType],\n        region: ['Global'],\n        geographical_scope: 'international'\n      });\n    }\n  });\n});\n\nreturn {\n  json: {\n    operation: 'ADD_BATCH_REFERENCES',\n    references: references.slice(0, 30)\n  }\n};"
+      },
+      "id": "prepare-references",
+      "name": "Prepare References for DB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1380, 1060]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.N8N_WEBHOOK_URL || 'http://localhost:5678'}}/webhook/reference-manager",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "save-references",
+      "name": "Save References to DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1600, 1060]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate the complete Arabic monthly report\nconst monthVars = $('Set Month Variables').item.json;\nconst violentAnalysis = $('Perplexity - Violent Crime Analysis').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst financialAnalysis = $('Perplexity - Financial Crime Analysis').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst traffickingAnalysis = $('Perplexity - Trafficking Analysis').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst cyberAnalysis = $('Perplexity - Cybercrime Analysis').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst aiAnalysis = $('Perplexity - AI Crime Analysis').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst childrenAnalysis = $('Perplexity - Children Crime Analysis').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst executiveSummary = $('Perplexity - Executive Summary').item?.json?.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\n\n// Collect all citations\nconst allCitations = [\n  ...($('Perplexity - Violent Crime Analysis').item?.json?.citations || []),\n  ...($('Perplexity - Financial Crime Analysis').item?.json?.citations || []),\n  ...($('Perplexity - Trafficking Analysis').item?.json?.citations || []),\n  ...($('Perplexity - Cybercrime Analysis').item?.json?.citations || []),\n  ...($('Perplexity - AI Crime Analysis').item?.json?.citations || []),\n  ...($('Perplexity - Children Crime Analysis').item?.json?.citations || [])\n];\n\nconst uniqueCitations = [...new Set(allCitations)];\nlet referencesSection = uniqueCitations.map((cite, i) => `${i + 1}. ${cite}`).join('\\n');\nif (!referencesSection) {\n  referencesSection = 'المراجع متوفرة في نظام قاعدة البيانات المرجعية';\n}\n\nconst report = `\n═══════════════════════════════════════════════════════════════\nالتقرير الشهري للتحليل الجنائي المعمق\n───────────────────────────────────────────────────────────────\nشهر: ${monthVars.month_arabic} ${monthVars.year_arabic}\n═══════════════════════════════════════════════════════════════\n\nالمحتويات:\n─────────\n١. الملخص التنفيذي\n٢. تحليل الجرائم العنيفة\n٣. تحليل الجرائم المالية\n٤. تحليل الاتجار بالبشر\n٥. تحليل الجرائم الإلكترونية\n٦. جرائم الذكاء الاصطناعي\n٧. الجرائم ضد الأطفال\n٨. المراجع والمصادر\n\n═══════════════════════════════════════════════════════════════\n١. الملخص التنفيذي\n═══════════════════════════════════════════════════════════════\n${executiveSummary}\n\n═══════════════════════════════════════════════════════════════\n٢. تحليل الجرائم العنيفة\n═══════════════════════════════════════════════════════════════\n${violentAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٣. تحليل الجرائم المالية\n═══════════════════════════════════════════════════════════════\n${financialAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٤. تحليل الاتجار بالبشر\n═══════════════════════════════════════════════════════════════\n${traffickingAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٥. تحليل الجرائم الإلكترونية\n═══════════════════════════════════════════════════════════════\n${cyberAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٦. جرائم الذكاء الاصطناعي\n═══════════════════════════════════════════════════════════════\n${aiAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٧. الجرائم ضد الأطفال\n═══════════════════════════════════════════════════════════════\n${childrenAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٨. المراجع والمصادر\n═══════════════════════════════════════════════════════════════\n${referencesSection}\n\n───────────────────────────────────────────────────────────────\nنهاية التقرير\nتم إعداد هذا التقرير آلياً بواسطة نظام الرصد الجنائي\n───────────────────────────────────────────────────────────────\n`;\n\nreturn {\n  json: {\n    report_content: report,\n    report_title: monthVars.report_title,\n    file_name: monthVars.file_name,\n    month: monthVars.month_arabic,\n    year: monthVars.year\n  }\n};"
+      },
+      "id": "generate-report",
+      "name": "Generate Arabic Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1600, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const reportData = $input.first().json;\n\nconst htmlContent = `\n<!DOCTYPE html>\n<html dir=\"rtl\" lang=\"ar\">\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    body {\n      font-family: 'Arial', 'Tahoma', sans-serif;\n      direction: rtl;\n      text-align: right;\n      line-height: 1.8;\n      padding: 40px;\n      max-width: 800px;\n      margin: 0 auto;\n    }\n    h1, h2, h3 {\n      color: #1a365d;\n      border-bottom: 2px solid #2c5282;\n      padding-bottom: 10px;\n    }\n    pre {\n      white-space: pre-wrap;\n      font-family: 'Arial', 'Tahoma', sans-serif;\n    }\n  </style>\n</head>\n<body>\n  <pre>${reportData.report_content}</pre>\n</body>\n</html>\n`;\n\nreturn {\n  json: {\n    ...reportData,\n    html_content: htmlContent\n  },\n  binary: {\n    report_html: {\n      data: Buffer.from(htmlContent).toString('base64'),\n      mimeType: 'text/html',\n      fileName: reportData.file_name.replace('.docx', '.html')\n    }\n  }\n};"
+      },
+      "id": "create-document",
+      "name": "Create Document",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1820, 500]
+    },
+    {
+      "parameters": {
+        "sendTo": "rashid.lootah.94@gmail.com",
+        "subject": "={{ $json.report_title }}",
+        "emailType": "html",
+        "message": "=<div dir=\"rtl\" style=\"font-family: Arial, Tahoma, sans-serif; text-align: right;\">\n<h2>التقرير الشهري للتحليل الجنائي المعمق</h2>\n<p>مرفق التقرير الشهري لشهر {{ $json.month }} {{ $json.year }}</p>\n<p>يتضمن هذا التقرير تحليلاً معمقاً للفئات الجنائية التالية:</p>\n<ul>\n<li>الجرائم العنيفة</li>\n<li>الجرائم المالية</li>\n<li>الاتجار بالبشر</li>\n<li>الجرائم الإلكترونية</li>\n<li>جرائم الذكاء الاصطناعي</li>\n<li>الجرائم ضد الأطفال</li>\n</ul>\n<p>يرجى الاطلاع على المرفق للتفاصيل الكاملة.</p>\n<hr>\n<p style=\"font-size: 12px; color: #666;\">تم إرسال هذا التقرير آلياً بواسطة نظام الرصد الجنائي</p>\n</div>",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "report_html"
+              }
+            ]
+          }
+        }
+      },
+      "id": "send-email",
+      "name": "Send Report Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2040, 500],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-oauth",
+          "name": "Gmail OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-email-sent",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-success",
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2260, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    success: true,\n    message: 'Monthly criminal analysis report sent successfully',\n    month: $('Set Month Variables').item.json.month_arabic,\n    year: $('Set Month Variables').item.json.year,\n    recipient: 'rashid.lootah.94@gmail.com',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "success-log",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2480, 400]
+    },
+    {
+      "parameters": {
+        "sendTo": "rashid.lootah.94@gmail.com",
+        "subject": "⚠️ فشل إرسال التقرير الشهري للتحليل الجنائي",
+        "emailType": "html",
+        "message": "=<div dir=\"rtl\" style=\"font-family: Arial, Tahoma, sans-serif; text-align: right;\">\n<h2>تنبيه: فشل تنفيذ سير العمل</h2>\n<p><strong>اسم سير العمل:</strong> التقرير الشهري للتحليل الجنائي</p>\n<p><strong>الشهر:</strong> {{ $('Set Month Variables').item.json.month_arabic }} {{ $('Set Month Variables').item.json.year }}</p>\n<p><strong>الوقت:</strong> {{ new Date().toISOString() }}</p>\n<p>يرجى مراجعة سجلات n8n للحصول على مزيد من التفاصيل.</p>\n</div>",
+        "options": {}
+      },
+      "id": "error-notification",
+      "name": "Send Error Notification",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2480, 600],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-oauth",
+          "name": "Gmail OAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Monthly Schedule (1st of month 7AM UAE)": {
+      "main": [
+        [
+          {
+            "node": "Set Month Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Month Variables": {
+      "main": [
+        [
+          {
+            "node": "Split into Crime Categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split into Crime Categories": {
+      "main": [
+        [
+          {
+            "node": "SERP - Violent Crime",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - Financial Crime",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - Human Trafficking",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - Cybercrime",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - AI-Enabled Crime",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - Crimes Against Children",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SERP - UAE Monthly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Violent Crime": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Violent Crime Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Financial Crime": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Financial Crime Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Human Trafficking": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Trafficking Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Cybercrime": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Cybercrime Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - AI-Enabled Crime": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - AI Crime Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - Crimes Against Children": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Children Crime Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SERP - UAE Monthly": {
+      "main": [
+        [
+          {
+            "node": "Prepare References for DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Violent Crime Analysis": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Executive Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Financial Crime Analysis": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Executive Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Trafficking Analysis": {
+      "main": [
+        [
+          {
+            "node": "Generate Arabic Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Cybercrime Analysis": {
+      "main": [
+        [
+          {
+            "node": "Perplexity - Executive Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - AI Crime Analysis": {
+      "main": [
+        [
+          {
+            "node": "Generate Arabic Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Children Crime Analysis": {
+      "main": [
+        [
+          {
+            "node": "Generate Arabic Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity - Executive Summary": {
+      "main": [
+        [
+          {
+            "node": "Generate Arabic Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare References for DB": {
+      "main": [
+        [
+          {
+            "node": "Save References to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Arabic Report": {
+      "main": [
+        [
+          {
+            "node": "Create Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Document": {
+      "main": [
+        [
+          {
+            "node": "Send Report Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Report Email": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Dubai",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Criminal Intelligence",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "Monthly Report",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
