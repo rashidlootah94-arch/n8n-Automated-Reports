@@ -616,7 +616,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي جنائي متخصص في الشؤون الأمنية لدولة الإمارات العربية المتحدة. قدم تحليلاً مهنياً ودقيقاً باللغة العربية مع ذكر المصادر.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل وتلخيص آخر أخبار الجريمة والأمن في الإمارات العربية المتحدة لهذا اليوم. المصادر المتاحة:\\n\\n\" + JSON.stringify($json.all_uae_news || []) + \"\\n\\nالمطلوب:\\n1. ملخص الحوادث الجنائية الرئيسية اليوم\\n2. أي أنماط ملحوظة\\n3. الإجراءات الأمنية المتخذة\\n\\nقدم الإجابة باللغة العربية بشكل منظم ومهني مع ذكر المصادر.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"day\"\n}",
+        "jsonBody": "={{ { model: 'llama-3.1-sonar-large-128k-online', messages: [ { role: 'system', content: 'أنت محلل استخباراتي جنائي متخصص في الشؤون الأمنية لدولة الإمارات العربية المتحدة. قدم تحليلاً مهنياً ودقيقاً باللغة العربية مع ذكر المصادر.' }, { role: 'user', content: 'قم بتحليل وتلخيص آخر أخبار الجريمة والأمن في الإمارات العربية المتحدة لهذا اليوم. المصادر المتاحة:\\n\\n' + JSON.stringify($json.all_uae_news || []) + '\\n\\nالمطلوب:\\n1. ملخص الحوادث الجنائية الرئيسية اليوم\\n2. أي أنماط ملحوظة\\n3. الإجراءات الأمنية المتخذة\\n\\nقدم الإجابة باللغة العربية بشكل منظم ومهني مع ذكر المصادر.' } ], temperature: 0.2, return_citations: true, search_recency_filter: 'day' } }}",
         "options": {}
       },
       "id": "perplexity-uae-analysis",
@@ -639,7 +639,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي جنائي متخصص في شؤون دول مجلس التعاون الخليجي. قدم تحليلاً مهنياً باللغة العربية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل وتلخيص آخر أخبار الجريمة في دول مجلس التعاون الخليجي (السعودية، الكويت، البحرين، قطر، عمان) لهذا اليوم.\\n\\nالمصادر:\\n\" + JSON.stringify($json.all_gcc_news || []) + \"\\n\\nقدم:\\n1. ملخص للتطورات الأمنية الإقليمية\\n2. أي تهديدات عابرة للحدود\\n3. التعاون الأمني بين دول المجلس\\n\\nباللغة العربية مع المصادر.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"day\"\n}",
+        "jsonBody": "={{ { model: 'llama-3.1-sonar-large-128k-online', messages: [ { role: 'system', content: 'أنت محلل استخباراتي جنائي متخصص في شؤون دول مجلس التعاون الخليجي. قدم تحليلاً مهنياً باللغة العربية.' }, { role: 'user', content: 'قم بتحليل وتلخيص آخر أخبار الجريمة في دول مجلس التعاون الخليجي (السعودية، الكويت، البحرين، قطر، عمان) لهذا اليوم.\\n\\nالمصادر:\\n' + JSON.stringify($json.all_gcc_news || []) + '\\n\\nقدم:\\n1. ملخص للتطورات الأمنية الإقليمية\\n2. أي تهديدات عابرة للحدود\\n3. التعاون الأمني بين دول المجلس\\n\\nباللغة العربية مع المصادر.' } ], temperature: 0.2, return_citations: true, search_recency_filter: 'day' } }}",
         "options": {}
       },
       "id": "perplexity-gcc-analysis",
@@ -662,7 +662,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي جنائي دولي. قدم تحليلاً شاملاً للأخبار الجنائية العالمية باللغة العربية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتحليل وتلخيص أهم الأخبار الجنائية الدولية لهذا اليوم.\\n\\nالأخبار الدولية:\\n\" + JSON.stringify($json.all_international_news || []) + \"\\n\\nقدم تحليلاً منظماً يشمل:\\n1. الجرائم العابرة للحدود\\n2. الاتجاهات الجنائية العالمية\\n3. الصلة المحتملة بالمنطقة العربية\\n\\nباللغة العربية.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"day\"\n}",
+        "jsonBody": "={{ { model: 'llama-3.1-sonar-large-128k-online', messages: [ { role: 'system', content: 'أنت محلل استخباراتي جنائي دولي. قدم تحليلاً شاملاً للأخبار الجنائية العالمية باللغة العربية.' }, { role: 'user', content: 'قم بتحليل وتلخيص أهم الأخبار الجنائية الدولية لهذا اليوم.\\n\\nالأخبار الدولية:\\n' + JSON.stringify($json.all_international_news || []) + '\\n\\nقدم تحليلاً منظماً يشمل:\\n1. الجرائم العابرة للحدود\\n2. الاتجاهات الجنائية العالمية\\n3. الصلة المحتملة بالمنطقة العربية\\n\\nباللغة العربية.' } ], temperature: 0.2, return_citations: true, search_recency_filter: 'day' } }}",
         "options": {}
       },
       "id": "perplexity-intl-analysis",
@@ -685,7 +685,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل متخصص في متابعة المنظمات الدولية المعنية بمكافحة الجريمة. قدم ملخصاً باللغة العربية.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"قم بتلخيص آخر تحديثات المنظمات الدولية المعنية بمكافحة الجريمة (UNODC, Interpol, Europol, FBI):\\n\\n\" + JSON.stringify($json.all_org_updates || []) + \"\\n\\nقدم ملخصاً منظماً لكل منظمة باللغة العربية.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"day\"\n}",
+        "jsonBody": "={{ { model: 'llama-3.1-sonar-large-128k-online', messages: [ { role: 'system', content: 'أنت محلل متخصص في متابعة المنظمات الدولية المعنية بمكافحة الجريمة. قدم ملخصاً باللغة العربية.' }, { role: 'user', content: 'قم بتلخيص آخر تحديثات المنظمات الدولية المعنية بمكافحة الجريمة (UNODC, Interpol, Europol, FBI):\\n\\n' + JSON.stringify($json.all_org_updates || []) + '\\n\\nقدم ملخصاً منظماً لكل منظمة باللغة العربية.' } ], temperature: 0.2, return_citations: true, search_recency_filter: 'day' } }}",
         "options": {}
       },
       "id": "perplexity-org-analysis",
@@ -708,7 +708,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل أنماط جنائية متخصص. قم بتحليل الأنماط الجنائية المتكررة من البيانات المقدمة.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"بناءً على التحليل الجنائي المقدم من الإمارات، قم بتحليل:\\n\\n1. الأنماط الجنائية المتكررة عبر أنواع الجرائم المختلفة\\n2. الأنماط الزمنية (وقت اليوم، يوم الأسبوع)\\n3. التجمعات الجغرافية\\n4. الروابط بين الحوادث المحلية والاتجاهات الإقليمية/الدولية\\n\\nالتحليل المتوفر:\\n\" + ($json.choices?.[0]?.message?.content || 'لا تتوفر بيانات').substring(0, 2000) + \"\\n\\nقدم التحليل باللغة العربية بشكل منظم.\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true,\n  \"search_recency_filter\": \"day\"\n}",
+        "jsonBody": "={{ { model: 'llama-3.1-sonar-large-128k-online', messages: [ { role: 'system', content: 'أنت محلل أنماط جنائية متخصص. قم بتحليل الأنماط الجنائية المتكررة من البيانات المقدمة.' }, { role: 'user', content: 'بناءً على التحليل الجنائي المقدم من الإمارات، قم بتحليل:\\n\\n1. الأنماط الجنائية المتكررة عبر أنواع الجرائم المختلفة\\n2. الأنماط الزمنية (وقت اليوم، يوم الأسبوع)\\n3. التجمعات الجغرافية\\n4. الروابط بين الحوادث المحلية والاتجاهات الإقليمية/الدولية\\n\\nالتحليل المتوفر:\\n' + ($json.choices?.[0]?.message?.content || 'لا تتوفر بيانات').substring(0, 2000) + '\\n\\nقدم التحليل باللغة العربية بشكل منظم.' } ], temperature: 0.2, return_citations: true, search_recency_filter: 'day' } }}",
         "options": {}
       },
       "id": "perplexity-pattern-analysis",
@@ -731,7 +731,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-large-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"أنت محلل استخباراتي جنائي رفيع المستوى. قم بإعداد ملخص تنفيذي شامل.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"اكتب ملخصاً تنفيذياً شاملاً للتقرير اليومي للرصد الجنائي يتضمن:\\n\\n1. أهم 3-5 تطورات جنائية/أمنية اليوم\\n2. مستوى التهديد الحالي\\n3. التوصيات العاجلة (إن وجدت)\\n\\nالتحليلات المتوفرة:\\n\" + JSON.stringify($input.all().map(item => item.json?.choices?.[0]?.message?.content?.substring(0, 500) || '').filter(c => c)) + \"\\n\\nاكتب الملخص باللغة العربية بشكل موجز ومهني (200-300 كلمة).\"\n    }\n  ],\n  \"temperature\": 0.2,\n  \"return_citations\": true\n}",
+        "jsonBody": "={{ { model: 'llama-3.1-sonar-large-128k-online', messages: [ { role: 'system', content: 'أنت محلل استخباراتي جنائي رفيع المستوى. قم بإعداد ملخص تنفيذي شامل.' }, { role: 'user', content: 'اكتب ملخصاً تنفيذياً شاملاً للتقرير اليومي للرصد الجنائي يتضمن:\\n\\n1. أهم 3-5 تطورات جنائية/أمنية اليوم\\n2. مستوى التهديد الحالي\\n3. التوصيات العاجلة (إن وجدت)\\n\\nالتحليلات المتوفرة:\\n' + JSON.stringify($input.all().map(item => (item.json?.choices?.[0]?.message?.content || '').substring(0, 500)).filter(c => c)) + '\\n\\nاكتب الملخص باللغة العربية بشكل موجز ومهني (200-300 كلمة).' } ], temperature: 0.2, return_citations: true } }}",
         "options": {}
       },
       "id": "perplexity-executive-summary",
@@ -864,7 +864,7 @@
         "sendTo": "rashid.lootah.94@gmail.com",
         "subject": "⚠️ فشل إرسال التقرير اليومي للرصد الجنائي",
         "emailType": "html",
-        "message": "=<div dir=\"rtl\" style=\"font-family: Arial, Tahoma, sans-serif; text-align: right;\">\n<h2>تنبيه: فشل تنفيذ سير العمل</h2>\n<p><strong>اسم سير العمل:</strong> التقرير اليومي للرصد الجنائي</p>\n<p><strong>التاريخ:</strong> \" + new Date().toLocaleDateString('ar-AE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + \"</p>\n<p><strong>الوقت:</strong> \" + new Date().toISOString() + \"</p>\n<p>يرجى مراجعة سجلات n8n للحصول على مزيد من التفاصيل.</p>\n</div>",
+        "message": "=`<div dir=\"rtl\" style=\"font-family: Arial, Tahoma, sans-serif; text-align: right;\">\n<h2>تنبيه: فشل تنفيذ سير العمل</h2>\n<p><strong>اسم سير العمل:</strong> التقرير اليومي للرصد الجنائي</p>\n<p><strong>التاريخ:</strong> ${new Date().toLocaleDateString('ar-AE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>\n<p><strong>الوقت:</strong> ${new Date().toISOString()}</p>\n<p>يرجى مراجعة سجلات n8n للحصول على مزيد من التفاصيل.</p>\n</div>`",
         "options": {}
       },
       "id": "error-notification",
