@@ -759,7 +759,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{$env.N8N_WEBHOOK_URL || 'http://localhost:5678'}}/webhook/reference-manager",
+        "url": "http://localhost:5678/webhook/reference-manager",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json) }}",
