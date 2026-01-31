@@ -785,6 +785,18 @@
     },
     {
       "parameters": {
+        "mode": "combine",
+        "combinationMode": "multiplex",
+        "options": {}
+      },
+      "id": "merge-all-analyses",
+      "name": "Wait for All Analyses",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1900, 980]
+    },
+    {
+      "parameters": {
         "jsCode": "// Create Word document content\nconst reportData = $input.first().json;\n\n// Convert report to base64 for binary handling\n// In production, you would use a proper DOCX library\n// For n8n, we'll create HTML that can be converted or use as rich text\n\nconst htmlContent = `\n<!DOCTYPE html>\n<html dir=\"rtl\" lang=\"ar\">\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    body {\n      font-family: 'Arial', 'Tahoma', sans-serif;\n      direction: rtl;\n      text-align: right;\n      line-height: 1.8;\n      padding: 40px;\n      max-width: 800px;\n      margin: 0 auto;\n    }\n    h1, h2, h3 {\n      color: #1a365d;\n      border-bottom: 2px solid #2c5282;\n      padding-bottom: 10px;\n    }\n    h1 {\n      font-size: 24px;\n      text-align: center;\n    }\n    h2 {\n      font-size: 18px;\n      margin-top: 30px;\n    }\n    .header {\n      background-color: #2c5282;\n      color: white;\n      padding: 20px;\n      text-align: center;\n      margin-bottom: 30px;\n    }\n    .section {\n      margin-bottom: 25px;\n      padding: 15px;\n      background-color: #f7fafc;\n      border-radius: 5px;\n    }\n    .footer {\n      margin-top: 40px;\n      padding-top: 20px;\n      border-top: 2px solid #2c5282;\n      text-align: center;\n      font-size: 12px;\n      color: #666;\n    }\n    pre {\n      white-space: pre-wrap;\n      font-family: 'Arial', 'Tahoma', sans-serif;\n    }\n  </style>\n</head>\n<body>\n  <pre>${reportData.report_content}</pre>\n</body>\n</html>\n`;\n\nreturn {\n  json: {\n    ...reportData,\n    html_content: htmlContent\n  },\n  binary: {\n    report_html: {\n      data: Buffer.from(htmlContent).toString('base64'),\n      mimeType: 'text/html',\n      fileName: reportData.file_name.replace('.docx', '.html')\n    }\n  }\n};"
       },
       "id": "create-document",
@@ -1198,7 +1210,7 @@
       "main": [
         [
           {
-            "node": "Generate Arabic Report",
+            "node": "Wait for All Analyses",
             "type": "main",
             "index": 0
           }
@@ -1206,6 +1218,17 @@
       ]
     },
     "Perplexity - Executive Summary": {
+      "main": [
+        [
+          {
+            "node": "Wait for All Analyses",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Wait for All Analyses": {
       "main": [
         [
           {
