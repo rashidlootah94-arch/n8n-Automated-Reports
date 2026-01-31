@@ -785,9 +785,7 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combinationMode": "multiplex",
-        "options": {}
+        "mode": "append"
       },
       "id": "merge-all-analyses",
       "name": "Wait for All Analyses",
