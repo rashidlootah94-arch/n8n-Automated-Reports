@@ -785,7 +785,11 @@
     },
     {
       "parameters": {
-        "mode": "append"
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
       },
       "id": "merge-all-analyses",
       "name": "Wait for All Analyses",
