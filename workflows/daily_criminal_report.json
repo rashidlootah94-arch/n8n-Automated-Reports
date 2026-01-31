@@ -775,7 +775,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Generate the complete Arabic report\nconst allInputs = $input.all();\n\n// Get current date for report\nconst now = new Date();\nconst dateArabic = now.toLocaleDateString('ar-AE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst dateEnglish = now.toISOString().split('T')[0];\nconst fileName = `criminal_daily_report_${dateEnglish}.html`;\nconst reportTitle = `التقرير اليومي للرصد الجنائي - ${dateArabic}`;\n\n// Extract analyses from inputs\nlet analyses = [];\nlet allCitations = [];\nfor (const input of allInputs) {\n  const content = input.json?.choices?.[0]?.message?.content;\n  if (content) analyses.push(content);\n  const citations = input.json?.citations || [];\n  allCitations = [...allCitations, ...citations];\n}\n\n// Build sections from available analyses\nconst executiveSummary = analyses[0] || 'لا تتوفر بيانات';\nconst patternAnalysis = analyses[1] || 'لا تتوفر بيانات';\n\n// Format references\nconst uniqueCitations = [...new Set(allCitations)];\nlet referencesSection = '';\nuniqueCitations.forEach((cite, i) => {\n  referencesSection += `${i + 1}. ${cite}\\n`;\n});\nif (!referencesSection) referencesSection = 'المراجع متوفرة في نظام قاعدة البيانات المرجعية';\n\nconst report = `\n═══════════════════════════════════════════════════════════════\nالتقرير اليومي للرصد الجنائي والأمني\n───────────────────────────────────────────────────────────────\nالتاريخ: ${dateArabic}\nوقت الإصدار: ٠٧:٠٠ صباحاً بتوقيت الإمارات\n═══════════════════════════════════════════════════════════════\n\n═══════════════════════════════════════════════════════════════\n١. الملخص التنفيذي\n═══════════════════════════════════════════════════════════════\n${executiveSummary}\n\n═══════════════════════════════════════════════════════════════\n٢. تحليل الأنماط الجنائية\n═══════════════════════════════════════════════════════════════\n${patternAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٣. المراجع والمصادر\n═══════════════════════════════════════════════════════════════\n${referencesSection}\n\n───────────────────────────────────────────────────────────────\nنهاية التقرير\nتم إعداد هذا التقرير آلياً بواسطة نظام الرصد الجنائي\n───────────────────────────────────────────────────────────────\n`;\n\nreturn {\n  json: {\n    report_content: report,\n    report_title: reportTitle,\n    file_name: fileName,\n    date: dateEnglish\n  }\n};"
+        "jsCode": "// Generate the complete Arabic report with ALL 6 analyses\nconst allInputs = $input.all();\n\n// Get current date for report\nconst now = new Date();\nconst dateArabic = now.toLocaleDateString('ar-AE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst dateEnglish = now.toISOString().split('T')[0];\nconst fileName = `criminal_daily_report_${dateEnglish}.html`;\nconst reportTitle = `التقرير اليومي للرصد الجنائي - ${dateArabic}`;\n\n// Initialize analysis sections\nlet uaeAnalysis = 'لا تتوفر بيانات';\nlet gccAnalysis = 'لا تتوفر بيانات';\nlet internationalAnalysis = 'لا تتوفر بيانات';\nlet orgUpdatesAnalysis = 'لا تتوفر بيانات';\nlet patternAnalysis = 'لا تتوفر بيانات';\nlet executiveSummary = 'لا تتوفر بيانات';\nlet allCitations = [];\n\n// Process all inputs and identify each analysis type\nfor (const input of allInputs) {\n  const content = input.json?.choices?.[0]?.message?.content || '';\n  const citations = input.json?.citations || [];\n  allCitations = [...allCitations, ...citations];\n  \n  if (!content) continue;\n  \n  // Identify analysis type based on content keywords\n  const contentLower = content.toLowerCase();\n  \n  if (contentLower.includes('executive') || contentLower.includes('ملخص تنفيذي') || contentLower.includes('أهم التطورات') || contentLower.includes('مستوى التهديد')) {\n    executiveSummary = content;\n  } else if (contentLower.includes('pattern') || contentLower.includes('أنماط') || contentLower.includes('نمط') || contentLower.includes('تكرار') || contentLower.includes('geographical cluster')) {\n    patternAnalysis = content;\n  } else if (contentLower.includes('unodc') || contentLower.includes('interpol') || contentLower.includes('europol') || contentLower.includes('fbi') || contentLower.includes('الإنتربول') || contentLower.includes('يوروبول')) {\n    orgUpdatesAnalysis = content;\n  } else if (contentLower.includes('uae') || contentLower.includes('emirates') || contentLower.includes('الإمارات') || contentLower.includes('دبي') || contentLower.includes('أبوظبي')) {\n    uaeAnalysis = content;\n  } else if (contentLower.includes('gcc') || contentLower.includes('gulf') || contentLower.includes('خليج') || contentLower.includes('السعودية') || contentLower.includes('الكويت') || contentLower.includes('البحرين') || contentLower.includes('قطر') || contentLower.includes('عمان')) {\n    gccAnalysis = content;\n  } else if (contentLower.includes('international') || contentLower.includes('global') || contentLower.includes('دولي') || contentLower.includes('عالمي') || contentLower.includes('عابر')) {\n    internationalAnalysis = content;\n  }\n}\n\n// Format references\nconst uniqueCitations = [...new Set(allCitations)];\nlet referencesSection = '';\nuniqueCitations.forEach((cite, i) => {\n  referencesSection += `${i + 1}. ${cite}\\n`;\n});\nif (!referencesSection) referencesSection = 'المراجع متوفرة في نظام قاعدة البيانات المرجعية';\n\nconst report = `\n═══════════════════════════════════════════════════════════════\nالتقرير اليومي للرصد الجنائي والأمني\n───────────────────────────────────────────────────────────────\nالتاريخ: ${dateArabic}\nوقت الإصدار: ٠٧:٠٠ صباحاً بتوقيت الإمارات\n═══════════════════════════════════════════════════════════════\n\n═══════════════════════════════════════════════════════════════\n١. الملخص التنفيذي\n═══════════════════════════════════════════════════════════════\n${executiveSummary}\n\n═══════════════════════════════════════════════════════════════\n٢. تحليل أخبار الإمارات العربية المتحدة\n═══════════════════════════════════════════════════════════════\n${uaeAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٣. تحليل أخبار دول مجلس التعاون الخليجي\n═══════════════════════════════════════════════════════════════\n${gccAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٤. تحليل الأخبار الدولية\n═══════════════════════════════════════════════════════════════\n${internationalAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٥. تحديثات المنظمات الدولية\n═══════════════════════════════════════════════════════════════\n${orgUpdatesAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٦. تحليل الأنماط الجنائية\n═══════════════════════════════════════════════════════════════\n${patternAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٧. المراجع والمصادر\n═══════════════════════════════════════════════════════════════\n${referencesSection}\n\n───────────────────────────────────────────────────────────────\nنهاية التقرير\nتم إعداد هذا التقرير آلياً بواسطة نظام الرصد الجنائي\n───────────────────────────────────────────────────────────────\n`;\n\n// Return ONE item only to ensure only one email is sent\nreturn [{\n  json: {\n    report_content: report,\n    report_title: reportTitle,\n    file_name: fileName,\n    date: dateEnglish\n  }\n}];"
       },
       "id": "generate-report",
       "name": "Generate Arabic Report",
@@ -785,11 +785,8 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combinationMode": "mergeByPosition",
-        "options": {
-          "includeUnpaired": true
-        }
+        "mode": "append",
+        "options": {}
       },
       "id": "merge-all-analyses",
       "name": "Wait for All Analyses",
@@ -1171,6 +1168,11 @@
             "node": "Perplexity - Pattern Analysis",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Wait for All Analyses",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -1182,6 +1184,11 @@
             "node": "Perplexity - Executive Summary",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Wait for All Analyses",
+            "type": "main",
+            "index": 1
           }
         ]
       ]
@@ -1193,6 +1200,11 @@
             "node": "Perplexity - Executive Summary",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Wait for All Analyses",
+            "type": "main",
+            "index": 2
           }
         ]
       ]
@@ -1204,6 +1216,16 @@
             "node": "Prepare References for DB",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Perplexity - Executive Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait for All Analyses",
+            "type": "main",
+            "index": 3
           }
         ]
       ]
@@ -1214,7 +1236,7 @@
           {
             "node": "Wait for All Analyses",
             "type": "main",
-            "index": 0
+            "index": 4
           }
         ]
       ]
@@ -1225,7 +1247,7 @@
           {
             "node": "Wait for All Analyses",
             "type": "main",
-            "index": 1
+            "index": 5
           }
         ]
       ]
