@@ -1188,7 +1188,7 @@
           {
             "node": "Wait for All Analyses",
             "type": "main",
-            "index": 1
+            "index": 0
           }
         ]
       ]
@@ -1204,7 +1204,7 @@
           {
             "node": "Wait for All Analyses",
             "type": "main",
-            "index": 2
+            "index": 0
           }
         ]
       ]
@@ -1225,7 +1225,7 @@
           {
             "node": "Wait for All Analyses",
             "type": "main",
-            "index": 3
+            "index": 0
           }
         ]
       ]
@@ -1236,7 +1236,7 @@
           {
             "node": "Wait for All Analyses",
             "type": "main",
-            "index": 4
+            "index": 0
           }
         ]
       ]
@@ -1247,7 +1247,7 @@
           {
             "node": "Wait for All Analyses",
             "type": "main",
-            "index": 5
+            "index": 0
           }
         ]
       ]
