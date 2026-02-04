@@ -3,9 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "rule": {
-          "interval": [{"triggerAtHour": 7, "triggerAtMinute": 0}]
-        },
+        "rule": {"interval": [{"triggerAtHour": 7, "triggerAtMinute": 0}]},
         "options": {"cronExpression": "0 7 * * 0-4"}
       },
       "id": "schedule-trigger",
@@ -135,30 +133,47 @@
       "parameters": {
         "mode": "combine",
         "combinationMode": "mergeByPosition",
-        "numberInputs": 4,
-        "options": {
-          "clashHandling": {
-            "values": {
-              "resolveClash": "preferInput1"
-            }
-          }
-        }
+        "options": {}
       },
-      "id": "wait-merge",
-      "name": "Wait for All SERP",
+      "id": "merge1",
+      "name": "Merge UAE+GCC",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [1180, 400]
+      "position": [1160, 275]
     },
     {
       "parameters": {
-        "jsCode": "// Combine all SERP results into structured data\nconst allItems = $input.all();\n\nlet uaeNews = [];\nlet gccNews = [];\nlet intlNews = [];\nlet orgNews = [];\n\n// Each item contains merged data from all inputs\nfor (const item of allItems) {\n  const data = item.json;\n  \n  // Check for news_results in each potential field\n  if (data.news_results) {\n    const news = data.news_results.slice(0, 10).map(n => ({\n      title: n.title,\n      source: n.source?.name || n.source || 'Unknown',\n      snippet: n.snippet || '',\n      link: n.link\n    }));\n    \n    // Categorize based on query or content\n    const searchInfo = data.search_parameters?.q || '';\n    if (searchInfo.includes('UAE') || searchInfo.includes('Dubai')) {\n      uaeNews = news;\n    } else if (searchInfo.includes('Saudi') || searchInfo.includes('Kuwait')) {\n      gccNews = news;\n    } else if (searchInfo.includes('international') || searchInfo.includes('Europe')) {\n      intlNews = news;\n    }\n  }\n  \n  if (data.organic_results) {\n    orgNews = data.organic_results.slice(0, 10).map(n => ({\n      title: n.title,\n      source: 'Organization',\n      snippet: n.snippet || '',\n      link: n.link\n    }));\n  }\n}\n\nreturn {\n  json: {\n    uae_news: uaeNews,\n    gcc_news: gccNews,\n    international_news: intlNews,\n    org_news: orgNews,\n    total: uaeNews.length + gccNews.length + intlNews.length + orgNews.length\n  }\n};"
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "merge2",
+      "name": "Merge Intl+Orgs",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1160, 575]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "merge-final",
+      "name": "Merge All",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1400, 425]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract all news from merged data\nconst data = $input.first().json;\n\n// Extract news from each source\nconst extractNews = (obj, key) => {\n  const news = obj?.news_results || obj?.[key]?.news_results || [];\n  return news.slice(0, 10).map(n => ({\n    title: n.title,\n    source: n.source?.name || n.source || 'Unknown',\n    snippet: n.snippet || '',\n    link: n.link\n  }));\n};\n\n// Get search query to identify source\nconst getQuery = (obj, key) => obj?.search_parameters?.q || obj?.[key]?.search_parameters?.q || '';\n\nlet uaeNews = [];\nlet gccNews = [];\nlet intlNews = [];\nlet orgNews = [];\n\n// Check all possible data locations\nfor (const key of Object.keys(data)) {\n  const query = getQuery(data, key);\n  const news = extractNews(data, key);\n  \n  if (query.includes('UAE') || query.includes('Dubai')) uaeNews = news;\n  else if (query.includes('Saudi') || query.includes('Kuwait')) gccNews = news;\n  else if (query.includes('international') || query.includes('Europe')) intlNews = news;\n  else if (query.includes('INTERPOL') || query.includes('FBI')) {\n    const orgResults = data?.organic_results || data?.[key]?.organic_results || [];\n    orgNews = orgResults.slice(0, 10).map(n => ({ title: n.title, source: 'Org', snippet: n.snippet || '', link: n.link }));\n  }\n}\n\n// Also check top-level\nif (data.news_results) {\n  const q = data.search_parameters?.q || '';\n  const news = extractNews(data, null);\n  if (q.includes('UAE')) uaeNews = news;\n  else if (q.includes('Saudi')) gccNews = news;\n  else if (q.includes('international')) intlNews = news;\n}\nif (data.organic_results && (data.search_parameters?.q || '').includes('INTERPOL')) {\n  orgNews = data.organic_results.slice(0, 10).map(n => ({ title: n.title, source: 'Org', snippet: n.snippet || '', link: n.link }));\n}\n\nreturn {\n  json: {\n    uae_news: uaeNews,\n    gcc_news: gccNews,\n    international_news: intlNews,\n    org_news: orgNews,\n    total: uaeNews.length + gccNews.length + intlNews.length + orgNews.length\n  }\n};"
       },
       "id": "combine-news",
-      "name": "Combine All News",
+      "name": "Combine News",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1420, 400]
+      "position": [1640, 425]
     },
     {
       "parameters": {
@@ -168,25 +183,25 @@
         "genericAuthType": "httpBearerAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { model: 'sonar-pro', messages: [ { role: 'system', content: 'You are a senior criminal intelligence analyst preparing a comprehensive daily report for UAE government officials. Provide professional, accurate, and detailed analysis. IMPORTANT: Your ENTIRE response MUST be written in Arabic language.' }, { role: 'user', content: 'Prepare a comprehensive daily criminal intelligence report based on the following news sources. Structure your response with these exact sections:\\n\\n## ١. الملخص التنفيذي\\nProvide a 200-word executive summary.\\n\\n## ٢. تحليل أخبار الإمارات\\nAnalyze UAE news:\\n' + JSON.stringify($json.uae_news) + '\\n\\n## ٣. تحليل أخبار دول الخليج\\nAnalyze GCC news:\\n' + JSON.stringify($json.gcc_news) + '\\n\\n## ٤. تحليل الأخبار الدولية\\nAnalyze international news:\\n' + JSON.stringify($json.international_news) + '\\n\\n## ٥. تحديثات المنظمات الدولية\\nAnalyze organization updates:\\n' + JSON.stringify($json.org_news) + '\\n\\n## ٦. التوصيات\\nProvide 3-5 recommendations.\\n\\nRespond ENTIRELY in Arabic.' } ], temperature: 0.2, return_citations: true, search_recency_filter: 'day' } }}",
+        "jsonBody": "={{ { model: 'sonar-pro', messages: [ { role: 'system', content: 'You are a senior criminal intelligence analyst preparing a comprehensive daily report for UAE government officials. IMPORTANT: Your ENTIRE response MUST be written in Arabic language.' }, { role: 'user', content: 'Prepare a comprehensive daily criminal intelligence report. Structure your response with these sections:\\n\\n## ١. الملخص التنفيذي\\n200-word executive summary.\\n\\n## ٢. تحليل أخبار الإمارات\\nUAE news:\\n' + JSON.stringify($json.uae_news) + '\\n\\n## ٣. تحليل أخبار دول الخليج\\nGCC news:\\n' + JSON.stringify($json.gcc_news) + '\\n\\n## ٤. تحليل الأخبار الدولية\\nInternational news:\\n' + JSON.stringify($json.international_news) + '\\n\\n## ٥. تحديثات المنظمات الدولية\\nOrganization updates:\\n' + JSON.stringify($json.org_news) + '\\n\\n## ٦. التوصيات\\n3-5 recommendations.\\n\\nRespond ENTIRELY in Arabic.' } ], temperature: 0.2, return_citations: true, search_recency_filter: 'day' } }}",
         "options": {}
       },
       "id": "perplexity",
       "name": "Perplexity Analysis",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1660, 400],
+      "position": [1880, 425],
       "credentials": {"httpBearerAuth": {"id": "perplexity-api", "name": "Perplexity API"}}
     },
     {
       "parameters": {
-        "jsCode": "const analysis = $json.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst citations = $json.citations || [];\nconst now = new Date();\nconst dateArabic = now.toLocaleDateString('ar-AE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst dateEnglish = now.toISOString().split('T')[0];\nconst reportTitle = `التقرير اليومي للرصد الجنائي - ${dateArabic}`;\n\nlet citationsHtml = citations.length > 0 ? citations.map(c => `<li><a href=\"${c}\">${c}</a></li>`).join('') : '<li>المراجع متوفرة عند الطلب</li>';\n\nlet formattedContent = analysis.replace(/## (.*)/g, '</div><div class=\"section\"><h2>$1</h2><div class=\"section-content\">').replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>').replace(/\\n/g, '<br>');\n\nconst htmlReport = `<!DOCTYPE html><html dir=\"rtl\" lang=\"ar\"><head><meta charset=\"UTF-8\"><title>${reportTitle}</title><style>body{font-family:'Segoe UI',Tahoma,sans-serif;direction:rtl;text-align:right;line-height:1.8;padding:20px;max-width:900px;margin:0 auto;background:#f5f5f5}.container{background:white;padding:30px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}.header{background:linear-gradient(135deg,#1a365d,#2c5282);color:white;padding:25px;text-align:center;border-radius:10px 10px 0 0;margin:-30px -30px 30px}.header h1{margin:0 0 10px;font-size:24px}.section{margin-bottom:25px;padding:20px;background:#f8fafc;border-radius:8px;border-right:4px solid #2c5282}.section h2{color:#1a365d;margin:0 0 15px;font-size:18px;border-bottom:2px solid #e2e8f0;padding-bottom:10px}.section-content{color:#2d3748;font-size:15px}.references{background:#f0fff4;border-right-color:#38a169}.references h2{color:#276749}.references ul{margin:0;padding:0 20px}.references li{margin-bottom:8px}.references a{color:#2b6cb0}.footer{text-align:center;padding:20px;color:#718096;font-size:12px;border-top:1px solid #e2e8f0;margin-top:30px}</style></head><body><div class=\"container\"><div class=\"header\"><h1>التقرير اليومي للرصد الجنائي والأمني</h1><div>${dateArabic}</div></div><div class=\"section\"><div class=\"section-content\">${formattedContent}</div></div><div class=\"section references\"><h2>المراجع</h2><ul>${citationsHtml}</ul></div><div class=\"footer\">تم إعداد هذا التقرير آلياً</div></div></body></html>`;\n\nreturn { json: { report_html: htmlReport, report_title: reportTitle, file_name: `report_${dateEnglish}.html`, date: dateEnglish }, binary: { report_file: { data: Buffer.from(htmlReport).toString('base64'), mimeType: 'text/html', fileName: `report_${dateEnglish}.html` } } };"
+        "jsCode": "const analysis = $json.choices?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst citations = $json.citations || [];\nconst now = new Date();\nconst dateArabic = now.toLocaleDateString('ar-AE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst dateEnglish = now.toISOString().split('T')[0];\nconst reportTitle = `التقرير اليومي للرصد الجنائي - ${dateArabic}`;\n\nlet citationsHtml = citations.length > 0 ? citations.map(c => `<li><a href=\"${c}\">${c}</a></li>`).join('') : '<li>المراجع متوفرة عند الطلب</li>';\nlet formattedContent = analysis.replace(/## (.*)/g, '</div><div class=\"section\"><h2>$1</h2><div class=\"section-content\">').replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>').replace(/\\n/g, '<br>');\n\nconst htmlReport = `<!DOCTYPE html><html dir=\"rtl\" lang=\"ar\"><head><meta charset=\"UTF-8\"><title>${reportTitle}</title><style>body{font-family:'Segoe UI',Tahoma,sans-serif;direction:rtl;text-align:right;line-height:1.8;padding:20px;max-width:900px;margin:0 auto;background:#f5f5f5}.container{background:white;padding:30px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}.header{background:linear-gradient(135deg,#1a365d,#2c5282);color:white;padding:25px;text-align:center;border-radius:10px 10px 0 0;margin:-30px -30px 30px}.header h1{margin:0 0 10px;font-size:24px}.section{margin-bottom:25px;padding:20px;background:#f8fafc;border-radius:8px;border-right:4px solid #2c5282}.section h2{color:#1a365d;margin:0 0 15px;font-size:18px;border-bottom:2px solid #e2e8f0;padding-bottom:10px}.section-content{color:#2d3748;font-size:15px}.references{background:#f0fff4;border-right-color:#38a169}.references h2{color:#276749}.references ul{margin:0;padding:0 20px}.references li{margin-bottom:8px}.references a{color:#2b6cb0}.footer{text-align:center;padding:20px;color:#718096;font-size:12px;border-top:1px solid #e2e8f0;margin-top:30px}</style></head><body><div class=\"container\"><div class=\"header\"><h1>التقرير اليومي للرصد الجنائي والأمني</h1><div>${dateArabic}</div></div><div class=\"section\"><div class=\"section-content\">${formattedContent}</div></div><div class=\"section references\"><h2>المراجع</h2><ul>${citationsHtml}</ul></div><div class=\"footer\">تم إعداد هذا التقرير آلياً</div></div></body></html>`;\n\nreturn { json: { report_html: htmlReport, report_title: reportTitle, file_name: `report_${dateEnglish}.html`, date: dateEnglish }, binary: { report_file: { data: Buffer.from(htmlReport).toString('base64'), mimeType: 'text/html', fileName: `report_${dateEnglish}.html` } } };"
       },
       "id": "generate-report",
       "name": "Generate Report",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1900, 400]
+      "position": [2120, 425]
     },
     {
       "parameters": {
@@ -204,7 +219,7 @@
       "name": "Send Email",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [2140, 400],
+      "position": [2360, 425],
       "credentials": {"gmailOAuth2": {"id": "gmail-oauth", "name": "Gmail OAuth2"}}
     }
   ],
@@ -224,21 +239,27 @@
       ]]
     },
     "SERP - UAE": {
-      "main": [[{"node": "Wait for All SERP", "type": "main", "index": 0}]]
+      "main": [[{"node": "Merge UAE+GCC", "type": "main", "index": 0}]]
     },
     "SERP - GCC": {
-      "main": [[{"node": "Wait for All SERP", "type": "main", "index": 1}]]
+      "main": [[{"node": "Merge UAE+GCC", "type": "main", "index": 1}]]
     },
     "SERP - International": {
-      "main": [[{"node": "Wait for All SERP", "type": "main", "index": 2}]]
+      "main": [[{"node": "Merge Intl+Orgs", "type": "main", "index": 0}]]
     },
     "SERP - Organizations": {
-      "main": [[{"node": "Wait for All SERP", "type": "main", "index": 3}]]
+      "main": [[{"node": "Merge Intl+Orgs", "type": "main", "index": 1}]]
     },
-    "Wait for All SERP": {
-      "main": [[{"node": "Combine All News", "type": "main", "index": 0}]]
+    "Merge UAE+GCC": {
+      "main": [[{"node": "Merge All", "type": "main", "index": 0}]]
     },
-    "Combine All News": {
+    "Merge Intl+Orgs": {
+      "main": [[{"node": "Merge All", "type": "main", "index": 1}]]
+    },
+    "Merge All": {
+      "main": [[{"node": "Combine News", "type": "main", "index": 0}]]
+    },
+    "Combine News": {
       "main": [[{"node": "Perplexity Analysis", "type": "main", "index": 0}]]
     },
     "Perplexity Analysis": {
