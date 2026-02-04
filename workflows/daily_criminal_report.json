@@ -90,7 +90,7 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            {"name": "q", "value": "international crime news today Europe USA"},
+            {"name": "q", "value": "(\"organized crime\" OR \"serious crime\" OR cybercrime OR fraud OR trafficking OR ransomware) (\"criminal network\" OR \"criminal group\" OR \"modus operandi\" OR trend) international"},
             {"name": "tbm", "value": "nws"},
             {"name": "tbs", "value": "qdr:d"},
             {"name": "hl", "value": "en"},
@@ -115,7 +115,7 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            {"name": "q", "value": "INTERPOL Europol UNODC FBI crime news"},
+            {"name": "q", "value": "(INTERPOL OR Europol OR UNODC OR FBI) (\"press release\" OR report OR alert OR assessment OR \"threat assessment\") (\"organized crime\" OR \"serious crime\" OR cybercrime OR fraud OR trafficking OR ransomware)"},
             {"name": "tbs", "value": "qdr:d"},
             {"name": "num", "value": "15"}
           ]
