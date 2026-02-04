@@ -134,8 +134,15 @@
     {
       "parameters": {
         "mode": "combine",
-        "combinationMode": "multiplex",
-        "options": {}
+        "combinationMode": "mergeByPosition",
+        "numberInputs": 4,
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "preferInput1"
+            }
+          }
+        }
       },
       "id": "wait-merge",
       "name": "Wait for All SERP",
