@@ -131,9 +131,7 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combinationMode": "mergeByPosition",
-        "options": {}
+        "mode": "append"
       },
       "id": "merge1",
       "name": "Merge UAE+GCC",
@@ -143,9 +141,7 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combinationMode": "mergeByPosition",
-        "options": {}
+        "mode": "append"
       },
       "id": "merge2",
       "name": "Merge Intl+Orgs",
@@ -155,9 +151,7 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combinationMode": "mergeByPosition",
-        "options": {}
+        "mode": "append"
       },
       "id": "merge-final",
       "name": "Merge All",
@@ -167,7 +161,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Extract all news from merged data\nconst data = $input.first().json;\n\n// Extract news from each source\nconst extractNews = (obj, key) => {\n  const news = obj?.news_results || obj?.[key]?.news_results || [];\n  return news.slice(0, 10).map(n => ({\n    title: n.title,\n    source: n.source?.name || n.source || 'Unknown',\n    snippet: n.snippet || '',\n    link: n.link\n  }));\n};\n\n// Get search query to identify source\nconst getQuery = (obj, key) => obj?.search_parameters?.q || obj?.[key]?.search_parameters?.q || '';\n\nlet uaeNews = [];\nlet gccNews = [];\nlet intlNews = [];\nlet orgNews = [];\n\n// Check all possible data locations\nfor (const key of Object.keys(data)) {\n  const query = getQuery(data, key);\n  const news = extractNews(data, key);\n  \n  if (query.includes('UAE') || query.includes('Dubai')) uaeNews = news;\n  else if (query.includes('Saudi') || query.includes('Kuwait')) gccNews = news;\n  else if (query.includes('international') || query.includes('Europe')) intlNews = news;\n  else if (query.includes('INTERPOL') || query.includes('FBI')) {\n    const orgResults = data?.organic_results || data?.[key]?.organic_results || [];\n    orgNews = orgResults.slice(0, 10).map(n => ({ title: n.title, source: 'Org', snippet: n.snippet || '', link: n.link }));\n  }\n}\n\n// Also check top-level\nif (data.news_results) {\n  const q = data.search_parameters?.q || '';\n  const news = extractNews(data, null);\n  if (q.includes('UAE')) uaeNews = news;\n  else if (q.includes('Saudi')) gccNews = news;\n  else if (q.includes('international')) intlNews = news;\n}\nif (data.organic_results && (data.search_parameters?.q || '').includes('INTERPOL')) {\n  orgNews = data.organic_results.slice(0, 10).map(n => ({ title: n.title, source: 'Org', snippet: n.snippet || '', link: n.link }));\n}\n\nreturn {\n  json: {\n    uae_news: uaeNews,\n    gcc_news: gccNews,\n    international_news: intlNews,\n    org_news: orgNews,\n    total: uaeNews.length + gccNews.length + intlNews.length + orgNews.length\n  }\n};"
+        "jsCode": "// Get all items from merged SERP results\nconst allItems = $input.all();\n\nlet uaeNews = [];\nlet gccNews = [];\nlet intlNews = [];\nlet orgNews = [];\n\n// Process each SERP result\nfor (const item of allItems) {\n  const data = item.json;\n  const query = data.search_parameters?.q || '';\n  \n  // Extract news results\n  const newsResults = data.news_results || [];\n  const news = newsResults.slice(0, 10).map(n => ({\n    title: n.title,\n    source: n.source?.name || n.source || 'Unknown',\n    snippet: n.snippet || '',\n    link: n.link\n  }));\n  \n  // Categorize based on search query\n  if (query.includes('UAE') || query.includes('Dubai')) {\n    uaeNews = news;\n  } else if (query.includes('Saudi') || query.includes('Kuwait')) {\n    gccNews = news;\n  } else if (query.includes('international') || query.includes('Europe')) {\n    intlNews = news;\n  } else if (query.includes('INTERPOL') || query.includes('FBI')) {\n    // Organizations search uses organic_results\n    const orgResults = data.organic_results || [];\n    orgNews = orgResults.slice(0, 10).map(n => ({\n      title: n.title,\n      source: 'Organization',\n      snippet: n.snippet || '',\n      link: n.link\n    }));\n  }\n}\n\nreturn {\n  json: {\n    uae_news: uaeNews,\n    gcc_news: gccNews,\n    international_news: intlNews,\n    org_news: orgNews,\n    total: uaeNews.length + gccNews.length + intlNews.length + orgNews.length\n  }\n};"
       },
       "id": "combine-news",
       "name": "Combine News",
