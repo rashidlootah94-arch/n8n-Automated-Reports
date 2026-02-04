@@ -39,7 +39,7 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            {"name": "q", "value": "UAE Dubai Abu Dhabi crime security news today"},
+            {"name": "q", "value": "(UAE OR Dubai OR \"Abu Dhabi\" OR Sharjah OR Ajman) (crime OR arrest OR fraud OR cybercrime OR \"money laundering\" OR trafficking OR scam OR \"police operation\" OR seizure OR \"court ruling\" OR \"criminal case\")"},
             {"name": "tbm", "value": "nws"},
             {"name": "tbs", "value": "qdr:d"},
             {"name": "gl", "value": "ae"},
@@ -65,7 +65,7 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            {"name": "q", "value": "Saudi Arabia Kuwait Bahrain Qatar Oman crime news today"},
+            {"name": "q", "value": "(\"Saudi Arabia\" OR Kuwait OR Bahrain OR Qatar OR Oman OR GCC) (crime OR arrest OR fraud OR cybercrime OR trafficking OR \"money laundering\" OR terrorism OR smuggling OR \"security threat\" OR \"criminal network\")"},
             {"name": "tbm", "value": "nws"},
             {"name": "tbs", "value": "qdr:d"},
             {"name": "hl", "value": "ar"},
