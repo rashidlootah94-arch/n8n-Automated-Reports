@@ -702,52 +702,6 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api.perplexity.ai/chat/completions",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpBearerAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { model: 'sonar-pro', messages: [ { role: 'system', content: 'You are a specialized criminal pattern analyst. Analyze recurring criminal patterns from the provided data. IMPORTANT: Your response MUST be written entirely in Arabic language.' }, { role: 'user', content: 'Based on the criminal analysis provided, analyze the following:\\n\\n1. Recurring criminal patterns across different crime types\\n2. Temporal patterns (time of day, day of week)\\n3. Geographical clusters\\n4. Links between local incidents and regional/international trends\\n\\nAvailable analysis:\\n' + ($json.choices?.[0]?.message?.content || 'No data available').substring(0, 2000) + '\\n\\nProvide the analysis entirely in Arabic in an organized format.' } ], temperature: 0.2, return_citations: true, search_recency_filter: 'day' } }}",
-        "options": {}
-      },
-      "id": "perplexity-pattern-analysis",
-      "name": "Perplexity - Pattern Analysis",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1380, 1700],
-      "credentials": {
-        "httpBearerAuth": {
-          "id": "perplexity-api",
-          "name": "Perplexity API"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.perplexity.ai/chat/completions",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpBearerAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ { model: 'sonar-pro', messages: [ { role: 'system', content: 'You are a senior criminal intelligence analyst. Prepare a comprehensive executive summary. IMPORTANT: Your response MUST be written entirely in Arabic language.' }, { role: 'user', content: 'Write a comprehensive executive summary for the daily criminal monitoring report that includes:\\n\\n1. Top 3-5 criminal/security developments today\\n2. Current threat level assessment\\n3. Urgent recommendations (if any)\\n\\nAvailable analyses:\\n' + JSON.stringify($input.all().map(item => (item.json?.choices?.[0]?.message?.content || '').substring(0, 500)).filter(c => c)) + '\\n\\nWrite the summary entirely in Arabic in a concise and professional manner (200-300 words).' } ], temperature: 0.2, return_citations: true } }}",
-        "options": {}
-      },
-      "id": "perplexity-executive-summary",
-      "name": "Perplexity - Executive Summary",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1620, 980],
-      "credentials": {
-        "httpBearerAuth": {
-          "id": "perplexity-api",
-          "name": "Perplexity API"
-        }
-      }
-    },
-    {
-      "parameters": {
         "jsCode": "// Collect references from Perplexity citations\nconst inputData = $json;\nconst citations = inputData.citations || [];\n\nconst references = [];\n\n// Process Perplexity citations\ncitations.forEach((cite, index) => {\n  if (cite) {\n    references.push({\n      title: `Reference ${index + 1}`,\n      url: cite,\n      source_type: 'news',\n      source_name: 'Perplexity AI',\n      publication_date: new Date().toISOString().split('T')[0],\n      crime_type: ['other'],\n      region: ['Global'],\n      geographical_scope: 'international'\n    });\n  }\n});\n\nreturn {\n  json: {\n    operation: 'ADD_BATCH_REFERENCES',\n    references: references.slice(0, 50)\n  }\n};"
       },
       "id": "prepare-references",
@@ -775,46 +729,55 @@
     },
     {
       "parameters": {
-        "jsCode": "// Generate the complete Arabic report with ALL 6 analyses\nconst allInputs = $input.all();\n\n// Get current date for report\nconst now = new Date();\nconst dateArabic = now.toLocaleDateString('ar-AE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst dateEnglish = now.toISOString().split('T')[0];\nconst fileName = `criminal_daily_report_${dateEnglish}.html`;\nconst reportTitle = `التقرير اليومي للرصد الجنائي - ${dateArabic}`;\n\n// Initialize analysis sections\nlet uaeAnalysis = 'لا تتوفر بيانات';\nlet gccAnalysis = 'لا تتوفر بيانات';\nlet internationalAnalysis = 'لا تتوفر بيانات';\nlet orgUpdatesAnalysis = 'لا تتوفر بيانات';\nlet patternAnalysis = 'لا تتوفر بيانات';\nlet executiveSummary = 'لا تتوفر بيانات';\nlet allCitations = [];\n\n// Process all inputs and identify each analysis type\nfor (const input of allInputs) {\n  const content = input.json?.choices?.[0]?.message?.content || '';\n  const citations = input.json?.citations || [];\n  allCitations = [...allCitations, ...citations];\n  \n  if (!content) continue;\n  \n  // Identify analysis type based on content keywords\n  const contentLower = content.toLowerCase();\n  \n  if (contentLower.includes('executive') || contentLower.includes('ملخص تنفيذي') || contentLower.includes('أهم التطورات') || contentLower.includes('مستوى التهديد')) {\n    executiveSummary = content;\n  } else if (contentLower.includes('pattern') || contentLower.includes('أنماط') || contentLower.includes('نمط') || contentLower.includes('تكرار') || contentLower.includes('geographical cluster')) {\n    patternAnalysis = content;\n  } else if (contentLower.includes('unodc') || contentLower.includes('interpol') || contentLower.includes('europol') || contentLower.includes('fbi') || contentLower.includes('الإنتربول') || contentLower.includes('يوروبول')) {\n    orgUpdatesAnalysis = content;\n  } else if (contentLower.includes('uae') || contentLower.includes('emirates') || contentLower.includes('الإمارات') || contentLower.includes('دبي') || contentLower.includes('أبوظبي')) {\n    uaeAnalysis = content;\n  } else if (contentLower.includes('gcc') || contentLower.includes('gulf') || contentLower.includes('خليج') || contentLower.includes('السعودية') || contentLower.includes('الكويت') || contentLower.includes('البحرين') || contentLower.includes('قطر') || contentLower.includes('عمان')) {\n    gccAnalysis = content;\n  } else if (contentLower.includes('international') || contentLower.includes('global') || contentLower.includes('دولي') || contentLower.includes('عالمي') || contentLower.includes('عابر')) {\n    internationalAnalysis = content;\n  }\n}\n\n// Format references\nconst uniqueCitations = [...new Set(allCitations)];\nlet referencesSection = '';\nuniqueCitations.forEach((cite, i) => {\n  referencesSection += `${i + 1}. ${cite}\\n`;\n});\nif (!referencesSection) referencesSection = 'المراجع متوفرة في نظام قاعدة البيانات المرجعية';\n\nconst report = `\n═══════════════════════════════════════════════════════════════\nالتقرير اليومي للرصد الجنائي والأمني\n───────────────────────────────────────────────────────────────\nالتاريخ: ${dateArabic}\nوقت الإصدار: ٠٧:٠٠ صباحاً بتوقيت الإمارات\n═══════════════════════════════════════════════════════════════\n\n═══════════════════════════════════════════════════════════════\n١. الملخص التنفيذي\n═══════════════════════════════════════════════════════════════\n${executiveSummary}\n\n═══════════════════════════════════════════════════════════════\n٢. تحليل أخبار الإمارات العربية المتحدة\n═══════════════════════════════════════════════════════════════\n${uaeAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٣. تحليل أخبار دول مجلس التعاون الخليجي\n═══════════════════════════════════════════════════════════════\n${gccAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٤. تحليل الأخبار الدولية\n═══════════════════════════════════════════════════════════════\n${internationalAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٥. تحديثات المنظمات الدولية\n═══════════════════════════════════════════════════════════════\n${orgUpdatesAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٦. تحليل الأنماط الجنائية\n═══════════════════════════════════════════════════════════════\n${patternAnalysis}\n\n═══════════════════════════════════════════════════════════════\n٧. المراجع والمصادر\n═══════════════════════════════════════════════════════════════\n${referencesSection}\n\n───────────────────────────────────────────────────────────────\nنهاية التقرير\nتم إعداد هذا التقرير آلياً بواسطة نظام الرصد الجنائي\n───────────────────────────────────────────────────────────────\n`;\n\n// Return ONE item only to ensure only one email is sent\nreturn [{\n  json: {\n    report_content: report,\n    report_title: reportTitle,\n    file_name: fileName,\n    date: dateEnglish\n  }\n}];"
+        "jsCode": "// Generate consolidated Arabic report from 4 regional analyses\nconst mergedData = $input.first().json;\n\n// Get current date\nconst now = new Date();\nconst dateArabic = now.toLocaleDateString('ar-AE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst dateEnglish = now.toISOString().split('T')[0];\nconst fileName = `criminal_daily_report_${dateEnglish}.html`;\nconst reportTitle = `التقرير اليومي للرصد الجنائي - ${dateArabic}`;\n\n// Extract analyses from merged data (mergeByPosition adds suffixes)\nconst uaeAnalysis = mergedData.choices?.[0]?.message?.content || mergedData['choices']?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst gccAnalysis = mergedData.choices_1?.[0]?.message?.content || mergedData['choices 1']?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst internationalAnalysis = mergedData.choices_2?.[0]?.message?.content || mergedData['choices 2']?.[0]?.message?.content || 'لا تتوفر بيانات';\nconst orgUpdatesAnalysis = mergedData.choices_3?.[0]?.message?.content || mergedData['choices 3']?.[0]?.message?.content || 'لا تتوفر بيانات';\n\n// Collect all citations\nlet allCitations = [];\n[mergedData.citations, mergedData.citations_1, mergedData.citations_2, mergedData.citations_3].forEach(cites => {\n  if (Array.isArray(cites)) allCitations = [...allCitations, ...cites];\n});\nconst uniqueCitations = [...new Set(allCitations)];\n\n// Generate Executive Summary from the analyses\nconst allAnalyses = [uaeAnalysis, gccAnalysis, internationalAnalysis, orgUpdatesAnalysis].filter(a => a !== 'لا تتوفر بيانات');\nlet executiveSummary = 'يتضمن هذا التقرير تحليلاً شاملاً للأخبار الجنائية والأمنية على المستويات المحلية والإقليمية والدولية.';\nif (allAnalyses.length > 0) {\n  // Extract key points from each analysis (first 200 chars)\n  const summaryPoints = allAnalyses.map(a => a.substring(0, 300).split('.')[0] + '.').join(' ');\n  executiveSummary = summaryPoints || executiveSummary;\n}\n\n// Format references as HTML list\nlet referencesHtml = '';\nif (uniqueCitations.length > 0) {\n  referencesHtml = uniqueCitations.map((cite, i) => `<li><a href=\"${cite}\" target=\"_blank\">${cite}</a></li>`).join('');\n} else {\n  referencesHtml = '<li>المراجع متوفرة في نظام قاعدة البيانات المرجعية</li>';\n}\n\n// Create HTML report with proper formatting\nconst htmlReport = `\n<!DOCTYPE html>\n<html dir=\"rtl\" lang=\"ar\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>${reportTitle}</title>\n  <style>\n    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; direction: rtl; text-align: right; line-height: 1.8; padding: 20px; max-width: 900px; margin: 0 auto; background: #f5f5f5; }\n    .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }\n    .header { background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%); color: white; padding: 25px; text-align: center; border-radius: 10px 10px 0 0; margin: -30px -30px 30px -30px; }\n    .header h1 { margin: 0 0 10px 0; font-size: 24px; }\n    .header .date { font-size: 14px; opacity: 0.9; }\n    .section { margin-bottom: 30px; padding: 20px; background: #f8fafc; border-radius: 8px; border-right: 4px solid #2c5282; }\n    .section h2 { color: #1a365d; margin: 0 0 15px 0; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }\n    .section-content { color: #2d3748; font-size: 15px; white-space: pre-wrap; }\n    .executive-summary { background: #ebf8ff; border-right-color: #3182ce; }\n    .executive-summary h2 { color: #2b6cb0; }\n    .references { background: #f0fff4; border-right-color: #38a169; }\n    .references h2 { color: #276749; }\n    .references ul { margin: 0; padding: 0 20px; }\n    .references li { margin-bottom: 8px; word-break: break-all; }\n    .references a { color: #2b6cb0; text-decoration: none; }\n    .references a:hover { text-decoration: underline; }\n    .footer { text-align: center; padding: 20px; color: #718096; font-size: 12px; border-top: 1px solid #e2e8f0; margin-top: 30px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>التقرير اليومي للرصد الجنائي والأمني</h1>\n      <div class=\"date\">${dateArabic} | ٠٧:٠٠ صباحاً بتوقيت الإمارات</div>\n    </div>\n    \n    <div class=\"section executive-summary\">\n      <h2>١. الملخص التنفيذي</h2>\n      <div class=\"section-content\">${executiveSummary}</div>\n    </div>\n    \n    <div class=\"section\">\n      <h2>٢. تحليل أخبار الإمارات العربية المتحدة</h2>\n      <div class=\"section-content\">${uaeAnalysis}</div>\n    </div>\n    \n    <div class=\"section\">\n      <h2>٣. تحليل أخبار دول مجلس التعاون الخليجي</h2>\n      <div class=\"section-content\">${gccAnalysis}</div>\n    </div>\n    \n    <div class=\"section\">\n      <h2>٤. تحليل الأخبار الدولية</h2>\n      <div class=\"section-content\">${internationalAnalysis}</div>\n    </div>\n    \n    <div class=\"section\">\n      <h2>٥. تحديثات المنظمات الدولية</h2>\n      <div class=\"section-content\">${orgUpdatesAnalysis}</div>\n    </div>\n    \n    <div class=\"section references\">\n      <h2>٦. المراجع والمصادر</h2>\n      <ul>${referencesHtml}</ul>\n    </div>\n    \n    <div class=\"footer\">\n      نهاية التقرير | تم إعداد هذا التقرير آلياً بواسطة نظام الرصد الجنائي\n    </div>\n  </div>\n</body>\n</html>\n`;\n\n// Return ONE item only\nreturn [{\n  json: {\n    report_html: htmlReport,\n    report_title: reportTitle,\n    file_name: fileName,\n    date: dateEnglish,\n    uae_analysis: uaeAnalysis,\n    gcc_analysis: gccAnalysis,\n    international_analysis: internationalAnalysis,\n    org_updates_analysis: orgUpdatesAnalysis\n  }\n}];"
       },
       "id": "generate-report",
       "name": "Generate Arabic Report",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2080, 980]
+      "position": [1860, 700]
     },
     {
       "parameters": {
-        "mode": "append",
-        "options": {}
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "numberInputs": 4,
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "addSuffix"
+            }
+          },
+          "includeUnpaired": true
+        }
       },
       "id": "merge-all-analyses",
       "name": "Wait for All Analyses",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [1900, 980]
+      "position": [1620, 700]
     },
     {
       "parameters": {
-        "jsCode": "// Create Word document content\nconst reportData = $input.first().json;\n\n// Convert report to base64 for binary handling\n// In production, you would use a proper DOCX library\n// For n8n, we'll create HTML that can be converted or use as rich text\n\nconst htmlContent = `\n<!DOCTYPE html>\n<html dir=\"rtl\" lang=\"ar\">\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    body {\n      font-family: 'Arial', 'Tahoma', sans-serif;\n      direction: rtl;\n      text-align: right;\n      line-height: 1.8;\n      padding: 40px;\n      max-width: 800px;\n      margin: 0 auto;\n    }\n    h1, h2, h3 {\n      color: #1a365d;\n      border-bottom: 2px solid #2c5282;\n      padding-bottom: 10px;\n    }\n    h1 {\n      font-size: 24px;\n      text-align: center;\n    }\n    h2 {\n      font-size: 18px;\n      margin-top: 30px;\n    }\n    .header {\n      background-color: #2c5282;\n      color: white;\n      padding: 20px;\n      text-align: center;\n      margin-bottom: 30px;\n    }\n    .section {\n      margin-bottom: 25px;\n      padding: 15px;\n      background-color: #f7fafc;\n      border-radius: 5px;\n    }\n    .footer {\n      margin-top: 40px;\n      padding-top: 20px;\n      border-top: 2px solid #2c5282;\n      text-align: center;\n      font-size: 12px;\n      color: #666;\n    }\n    pre {\n      white-space: pre-wrap;\n      font-family: 'Arial', 'Tahoma', sans-serif;\n    }\n  </style>\n</head>\n<body>\n  <pre>${reportData.report_content}</pre>\n</body>\n</html>\n`;\n\nreturn {\n  json: {\n    ...reportData,\n    html_content: htmlContent\n  },\n  binary: {\n    report_html: {\n      data: Buffer.from(htmlContent).toString('base64'),\n      mimeType: 'text/html',\n      fileName: reportData.file_name.replace('.docx', '.html')\n    }\n  }\n};"
+        "jsCode": "// Prepare document for email attachment\nconst reportData = $input.first().json;\n\nreturn {\n  json: {\n    ...reportData\n  },\n  binary: {\n    report_file: {\n      data: Buffer.from(reportData.report_html).toString('base64'),\n      mimeType: 'text/html',\n      fileName: reportData.file_name\n    }\n  }\n};"
       },
       "id": "create-document",
       "name": "Create Document",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2300, 980]
+      "position": [2080, 700]
     },
     {
       "parameters": {
         "sendTo": "rashid.lootah.94@gmail.com",
         "subject": "={{ $json.report_title }}",
         "emailType": "html",
-        "message": "=<div dir=\"rtl\" style=\"font-family: Arial, Tahoma, sans-serif; text-align: right;\">\n<h2>التقرير اليومي للرصد الجنائي والأمني</h2>\n<p>مرفق التقرير اليومي بتاريخ {{ $json.date }}</p>\n<p>يرجى الاطلاع على المرفق للتفاصيل الكاملة.</p>\n<hr>\n<p style=\"font-size: 12px; color: #666;\">تم إرسال هذا التقرير آلياً بواسطة نظام الرصد الجنائي</p>\n</div>",
+        "message": "={{ $json.report_html }}",
         "options": {
           "attachmentsUi": {
             "attachmentsBinary": [
               {
-                "property": "report_html"
+                "property": "report_file"
               }
             ]
           }
@@ -824,7 +787,7 @@
       "name": "Send Report Email",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [2520, 980],
+      "position": [2300, 700],
       "credentials": {
         "gmailOAuth2": {
           "id": "gmail-oauth",
@@ -858,7 +821,7 @@
       "name": "Check Success",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2740, 980]
+      "position": [2520, 700]
     },
     {
       "parameters": {
@@ -868,7 +831,7 @@
       "name": "Log Success",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2960, 880]
+      "position": [2740, 600]
     },
     {
       "parameters": {
@@ -882,7 +845,7 @@
       "name": "Send Error Notification",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [2960, 1080],
+      "position": [2740, 800],
       "credentials": {
         "gmailOAuth2": {
           "id": "gmail-oauth",
@@ -1160,16 +1123,6 @@
       "main": [
         [
           {
-            "node": "Perplexity - Executive Summary",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Perplexity - Pattern Analysis",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Wait for All Analyses",
             "type": "main",
             "index": 0
@@ -1181,14 +1134,9 @@
       "main": [
         [
           {
-            "node": "Perplexity - Executive Summary",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Wait for All Analyses",
             "type": "main",
-            "index": 0
+            "index": 1
           }
         ]
       ]
@@ -1197,14 +1145,9 @@
       "main": [
         [
           {
-            "node": "Perplexity - Executive Summary",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Wait for All Analyses",
             "type": "main",
-            "index": 0
+            "index": 2
           }
         ]
       ]
@@ -1218,36 +1161,9 @@
             "index": 0
           },
           {
-            "node": "Perplexity - Executive Summary",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Wait for All Analyses",
             "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Perplexity - Pattern Analysis": {
-      "main": [
-        [
-          {
-            "node": "Wait for All Analyses",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Perplexity - Executive Summary": {
-      "main": [
-        [
-          {
-            "node": "Wait for All Analyses",
-            "type": "main",
-            "index": 0
+            "index": 3
           }
         ]
       ]
