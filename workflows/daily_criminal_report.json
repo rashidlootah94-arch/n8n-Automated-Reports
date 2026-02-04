@@ -37,7 +37,7 @@
       "name": "Split into Parallel Branches",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [680, 300]
+      "position": [680, 375]
     },
     {
       "parameters": {
@@ -62,7 +62,7 @@
       "name": "SERP - UAE News",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 100],
+      "position": [900, 150],
       "credentials": {"httpQueryAuth": {"id": "serp-api", "name": "SERP API"}}
     },
     {
@@ -87,7 +87,7 @@
       "name": "SERP - GCC News",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 250],
+      "position": [900, 300],
       "credentials": {"httpQueryAuth": {"id": "serp-api", "name": "SERP API"}}
     },
     {
@@ -112,7 +112,7 @@
       "name": "SERP - International News",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 400],
+      "position": [900, 450],
       "credentials": {"httpQueryAuth": {"id": "serp-api", "name": "SERP API"}}
     },
     {
@@ -135,7 +135,7 @@
       "name": "SERP - Organizations News",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 550],
+      "position": [900, 600],
       "credentials": {"httpQueryAuth": {"id": "serp-api", "name": "SERP API"}}
     },
     {
@@ -146,7 +146,7 @@
       "name": "Merge All News",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1140, 300]
+      "position": [1140, 375]
     },
     {
       "parameters": {
@@ -163,7 +163,7 @@
       "name": "Perplexity - Comprehensive Analysis",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1380, 300],
+      "position": [1380, 375],
       "credentials": {"httpBearerAuth": {"id": "perplexity-api", "name": "Perplexity API"}}
     },
     {
@@ -174,7 +174,7 @@
       "name": "Generate HTML Report",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1620, 300]
+      "position": [1620, 375]
     },
     {
       "parameters": {
@@ -192,7 +192,7 @@
       "name": "Send Report Email",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [1860, 300],
+      "position": [1860, 375],
       "credentials": {"gmailOAuth2": {"id": "gmail-oauth", "name": "Gmail OAuth2"}}
     },
     {
@@ -203,7 +203,7 @@
       "name": "Log Success",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2100, 300]
+      "position": [2100, 375]
     }
   ],
   "connections": {
