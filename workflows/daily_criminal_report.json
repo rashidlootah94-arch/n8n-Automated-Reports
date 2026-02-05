@@ -131,9 +131,7 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combinationMode": "mergeByPosition",
-        "options": {}
+        "mode": "append"
       },
       "id": "merge-uae-gcc",
       "name": "Merge UAE+GCC",
@@ -143,9 +141,7 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combinationMode": "mergeByPosition",
-        "options": {}
+        "mode": "append"
       },
       "id": "merge-intl-orgs",
       "name": "Merge Intl+Orgs",
@@ -155,9 +151,7 @@
     },
     {
       "parameters": {
-        "mode": "combine",
-        "combinationMode": "mergeByPosition",
-        "options": {}
+        "mode": "append"
       },
       "id": "merge-all",
       "name": "Merge All",
