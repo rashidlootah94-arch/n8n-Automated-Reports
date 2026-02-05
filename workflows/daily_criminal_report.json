@@ -201,7 +201,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://api.manus.im/v1/tasks/{{ $json.task_id }}",
+        "url": "=https://api.manus.im/v1/tasks/{{ $('Manus Create Task').item.json.task_id }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {}
