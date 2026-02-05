@@ -131,37 +131,56 @@
     },
     {
       "parameters": {
-        "aggregate": "aggregateAllItemData",
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
         "options": {}
       },
-      "id": "aggregate-all",
-      "name": "Aggregate All SERP",
-      "type": "n8n-nodes-base.aggregate",
-      "typeVersion": 1,
-      "position": [1180, 400]
+      "id": "merge-uae-gcc",
+      "name": "Merge UAE+GCC",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1160, 275]
     },
     {
       "parameters": {
-        "jsCode": "// Get all items from aggregated SERP results\nconst allItems = $input.first().json.data || $input.all();\n\nlet uaeNews = [];\nlet gccNews = [];\nlet intlNews = [];\nlet orgNews = [];\nlet allSources = [];\nlet sourceIndex = 1;\n\n// Process each SERP result\nconst items = Array.isArray(allItems) ? allItems : [allItems];\nfor (const item of items) {\n  const data = item.json || item;\n  const query = data.search_parameters?.q || '';\n  \n  // Extract news results\n  const newsResults = data.news_results || [];\n  const news = newsResults.slice(0, 10).map(n => {\n    const sourceName = n.source?.name || n.source || 'Unknown';\n    const link = n.link || '';\n    const idx = sourceIndex++;\n    allSources.push({ index: idx, name: sourceName, url: link, title: n.title });\n    return {\n      title: n.title,\n      source: sourceName,\n      snippet: n.snippet || '',\n      link: link,\n      citation_index: idx\n    };\n  });\n  \n  // Categorize based on search query\n  if (query.includes('UAE') || query.includes('Dubai')) {\n    uaeNews = news;\n  } else if (query.includes('Saudi') || query.includes('Kuwait')) {\n    gccNews = news;\n  } else if (query.includes('international') || query.includes('organized crime')) {\n    intlNews = news;\n  } else if (query.includes('INTERPOL') || query.includes('FBI')) {\n    // Organizations search uses organic_results\n    const orgResults = data.organic_results || [];\n    orgNews = orgResults.slice(0, 10).map(n => {\n      const sourceName = n.source?.name || n.source || 'Organization';\n      const link = n.link || '';\n      const idx = sourceIndex++;\n      allSources.push({ index: idx, name: sourceName, url: link, title: n.title });\n      return {\n        title: n.title,\n        source: sourceName,\n        snippet: n.snippet || '',\n        link: link,\n        citation_index: idx\n      };\n    });\n  }\n}\n\n// Build the prompt for Manus\nconst prompt = `أنت محلل استخبارات جنائية أول مكلف بإعداد تقرير استخباراتي جنائي يومي شامل حصرياً لصناع القرار في حكومة الإمارات العربية المتحدة.\nيجب أن يكون أسلوب كتابتك رسمياً وتحليلياً واستراتيجياً.\nهام جداً: يجب أن يكون كامل المخرجات باللغة العربية فقط.\n\n**تعليمات الاستشهاد المرجعي (هام جداً):**\n- كل خبر يحتوي على حقل citation_index يمثل رقم المرجع\n- عند الإشارة إلى أي معلومة من خبر معين، يجب إضافة رقم الاستشهاد بين قوسين مربعين مباشرة بعد المعلومة، مثال: [1] أو [2]\n- استخدم citation_index الموجود في بيانات الخبر كرقم للاستشهاد\n\nقم بإعداد تقرير استخباراتي جنائي يومي شامل باستخدام الهيكل أدناه:\n\n## ١. الملخص التنفيذي\n- ملخص تنفيذي موجز (٢٠٠ كلمة كحد أقصى)\n- التركيز على التهديدات والاتجاهات والمخاطر الرئيسية\n- أضف استشهادات [رقم] عند ذكر معلومات محددة\n\n## ٢. تحليل أخبار الإمارات العربية المتحدة\nلكل خبر قدم: المصدر [citation_index]، ملخص الخبر، التحليل الاستخباراتي، التأثير المحتمل، مستوى الخطورة\n\nبيانات الأخبار:\n${JSON.stringify(uaeNews)}\n\n## ٣. تحليل أخبار دول مجلس التعاون الخليجي\nبيانات الأخبار:\n${JSON.stringify(gccNews)}\n\n## ٤. تحليل الأخبار الدولية\nبيانات الأخبار:\n${JSON.stringify(intlNews)}\n\n## ٥. تحديثات المنظمات الدولية\nبيانات الأخبار:\n${JSON.stringify(orgNews)}\n\n## ٦. التوصيات\n- تقديم ٣ إلى ٥ توصيات قابلة للتنفيذ\n- ربط كل توصية بالمصادر ذات الصلة [أرقام الاستشهاد]\n\nالكتابة باللغة العربية فقط.`;\n\nreturn {\n  json: {\n    uae_news: uaeNews,\n    gcc_news: gccNews,\n    international_news: intlNews,\n    org_news: orgNews,\n    all_sources: allSources,\n    total: uaeNews.length + gccNews.length + intlNews.length + orgNews.length,\n    manus_prompt: prompt\n  }\n};"
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "merge-intl-orgs",
+      "name": "Merge Intl+Orgs",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1160, 575]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "id": "merge-all",
+      "name": "Merge All",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1400, 425]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all items from merged SERP results\nconst allItems = $input.all();\n\nlet uaeNews = [];\nlet gccNews = [];\nlet intlNews = [];\nlet orgNews = [];\nlet allSources = [];\nlet sourceIndex = 1;\n\n// Process each SERP result\nfor (const item of allItems) {\n  const data = item.json;\n  const query = data.search_parameters?.q || '';\n  \n  // Extract news results\n  const newsResults = data.news_results || [];\n  const news = newsResults.slice(0, 10).map(n => {\n    const sourceName = n.source?.name || n.source || 'Unknown';\n    const link = n.link || '';\n    const idx = sourceIndex++;\n    allSources.push({ index: idx, name: sourceName, url: link, title: n.title });\n    return {\n      title: n.title,\n      source: sourceName,\n      snippet: n.snippet || '',\n      link: link,\n      citation_index: idx\n    };\n  });\n  \n  // Categorize based on search query\n  if (query.includes('UAE') || query.includes('Dubai')) {\n    uaeNews = news;\n  } else if (query.includes('Saudi') || query.includes('Kuwait')) {\n    gccNews = news;\n  } else if (query.includes('international') || query.includes('organized crime')) {\n    intlNews = news;\n  } else if (query.includes('INTERPOL') || query.includes('FBI')) {\n    const orgResults = data.organic_results || [];\n    orgNews = orgResults.slice(0, 10).map(n => {\n      const sourceName = n.source?.name || n.source || 'Organization';\n      const link = n.link || '';\n      const idx = sourceIndex++;\n      allSources.push({ index: idx, name: sourceName, url: link, title: n.title });\n      return {\n        title: n.title,\n        source: sourceName,\n        snippet: n.snippet || '',\n        link: link,\n        citation_index: idx\n      };\n    });\n  }\n}\n\n// Build the prompt for Manus\nconst prompt = `أنت محلل استخبارات جنائية أول مكلف بإعداد تقرير استخباراتي جنائي يومي شامل حصرياً لصناع القرار في حكومة الإمارات العربية المتحدة.\nيجب أن يكون أسلوب كتابتك رسمياً وتحليلياً واستراتيجياً.\nهام جداً: يجب أن يكون كامل المخرجات باللغة العربية فقط.\n\n**تعليمات الاستشهاد المرجعي (هام جداً):**\n- كل خبر يحتوي على حقل citation_index يمثل رقم المرجع\n- عند الإشارة إلى أي معلومة من خبر معين، يجب إضافة رقم الاستشهاد بين قوسين مربعين مباشرة بعد المعلومة، مثال: [1] أو [2]\n- استخدم citation_index الموجود في بيانات الخبر كرقم للاستشهاد\n\nقم بإعداد تقرير استخباراتي جنائي يومي شامل باستخدام الهيكل أدناه:\n\n## ١. الملخص التنفيذي\n- ملخص تنفيذي موجز (٢٠٠ كلمة كحد أقصى)\n- التركيز على التهديدات والاتجاهات والمخاطر الرئيسية\n- أضف استشهادات [رقم] عند ذكر معلومات محددة\n\n## ٢. تحليل أخبار الإمارات العربية المتحدة\nلكل خبر قدم: المصدر [citation_index]، ملخص الخبر، التحليل الاستخباراتي، التأثير المحتمل، مستوى الخطورة\n\nبيانات الأخبار:\n${JSON.stringify(uaeNews)}\n\n## ٣. تحليل أخبار دول مجلس التعاون الخليجي\nبيانات الأخبار:\n${JSON.stringify(gccNews)}\n\n## ٤. تحليل الأخبار الدولية\nبيانات الأخبار:\n${JSON.stringify(intlNews)}\n\n## ٥. تحديثات المنظمات الدولية\nبيانات الأخبار:\n${JSON.stringify(orgNews)}\n\n## ٦. التوصيات\n- تقديم ٣ إلى ٥ توصيات قابلة للتنفيذ\n- ربط كل توصية بالمصادر ذات الصلة [أرقام الاستشهاد]\n\nالكتابة باللغة العربية فقط.`;\n\nreturn {\n  json: {\n    uae_news: uaeNews,\n    gcc_news: gccNews,\n    international_news: intlNews,\n    org_news: orgNews,\n    all_sources: allSources,\n    total: uaeNews.length + gccNews.length + intlNews.length + orgNews.length,\n    manus_prompt: prompt\n  }\n};"
       },
       "id": "combine-news",
       "name": "Combine News",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1420, 400]
+      "position": [1640, 425]
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://api.manus.ai/v1/tasks",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {"name": "Content-Type", "value": "application/json"},
-            {"name": "Accept", "value": "application/json"},
-            {"name": "API_KEY", "value": "={{ $credentials.manusApi.apiKey }}"}
-          ]
-        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ { prompt: $json.manus_prompt, taskMode: 'agent', agentProfile: 'quality' } }}",
@@ -171,7 +190,7 @@
       "name": "Manus Create Task",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1660, 400],
+      "position": [1880, 425],
       "credentials": {"httpHeaderAuth": {"id": "manus-api", "name": "Manus API"}}
     },
     {
@@ -183,26 +202,21 @@
       "name": "Wait 15s",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [1880, 400]
+      "position": [2100, 425]
     },
     {
       "parameters": {
         "method": "GET",
         "url": "=https://api.manus.ai/v1/tasks/{{ $('Manus Create Task').item.json.task_id }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {"name": "Accept", "value": "application/json"},
-            {"name": "API_KEY", "value": "={{ $credentials.manusApi.apiKey }}"}
-          ]
-        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "options": {}
       },
       "id": "manus-poll-task",
       "name": "Manus Poll Task",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2100, 400],
+      "position": [2320, 425],
       "credentials": {"httpHeaderAuth": {"id": "manus-api", "name": "Manus API"}}
     },
     {
@@ -224,7 +238,7 @@
       "name": "Task Complete?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2320, 400]
+      "position": [2540, 425]
     },
     {
       "parameters": {
@@ -235,7 +249,7 @@
       "name": "Wait & Retry",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [2320, 600]
+      "position": [2540, 625]
     },
     {
       "parameters": {
@@ -245,7 +259,7 @@
       "name": "Generate Report",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2540, 300]
+      "position": [2760, 325]
     },
     {
       "parameters": {
@@ -263,7 +277,7 @@
       "name": "Send Email",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [2780, 300],
+      "position": [3000, 325],
       "credentials": {"gmailOAuth2": {"id": "gmail-oauth", "name": "Gmail OAuth2"}}
     }
   ],
@@ -283,18 +297,24 @@
       ]]
     },
     "SERP - UAE": {
-      "main": [[{"node": "Aggregate All SERP", "type": "main", "index": 0}]]
+      "main": [[{"node": "Merge UAE+GCC", "type": "main", "index": 0}]]
     },
     "SERP - GCC": {
-      "main": [[{"node": "Aggregate All SERP", "type": "main", "index": 0}]]
+      "main": [[{"node": "Merge UAE+GCC", "type": "main", "index": 1}]]
     },
     "SERP - International": {
-      "main": [[{"node": "Aggregate All SERP", "type": "main", "index": 0}]]
+      "main": [[{"node": "Merge Intl+Orgs", "type": "main", "index": 0}]]
     },
     "SERP - Organizations": {
-      "main": [[{"node": "Aggregate All SERP", "type": "main", "index": 0}]]
+      "main": [[{"node": "Merge Intl+Orgs", "type": "main", "index": 1}]]
     },
-    "Aggregate All SERP": {
+    "Merge UAE+GCC": {
+      "main": [[{"node": "Merge All", "type": "main", "index": 0}]]
+    },
+    "Merge Intl+Orgs": {
+      "main": [[{"node": "Merge All", "type": "main", "index": 1}]]
+    },
+    "Merge All": {
       "main": [[{"node": "Combine News", "type": "main", "index": 0}]]
     },
     "Combine News": {
