@@ -1,0 +1,275 @@
+{
+  "name": "Criminal Intelligence Dashboard - لوحة معلومات الرصد الجنائي",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "dashboard",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "dashboard-webhook",
+      "name": "Dashboard Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "criminal-intelligence-dashboard"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM get_reference_statistics()",
+        "options": {}
+      },
+      "id": "get-statistics",
+      "name": "Get Statistics",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        460,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT report_type, COUNT(*) AS total, COUNT(*) FILTER (WHERE email_sent) AS emails_sent, MAX(created_at) AS last_run FROM reports GROUP BY report_type",
+        "options": {}
+      },
+      "id": "get-report-type-summary",
+      "name": "Get Report Type Summary",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, report_type, report_title, report_title_ar, report_date, email_sent, created_at, references_count, word_count FROM reports ORDER BY created_at DESC LIMIT 20",
+        "options": {}
+      },
+      "id": "get-recent-reports",
+      "name": "Get Recent Reports",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        900,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, title, title_ar, authors, source_type, source_name, url, crime_type, region, publication_date, date_added FROM criminal_references ORDER BY date_added DESC LIMIT 15",
+        "options": {}
+      },
+      "id": "get-recent-references",
+      "name": "Get Recent References",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1120,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT TO_CHAR(DATE_TRUNC('month', date_added), 'YYYY-MM') AS month, COUNT(*) AS cnt FROM criminal_references WHERE date_added >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months' GROUP BY 1 ORDER BY 1",
+        "options": {}
+      },
+      "id": "get-monthly-timeline",
+      "name": "Get Monthly Timeline",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1340,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ═══════════════════════════════════════════════════════════════\n// Build Arabic RTL HTML Dashboard from database query results\n// لوحة معلومات الرصد الجنائي\n// ═══════════════════════════════════════════════════════════════\n\nconst statsRow = $('Get Statistics').first().json || {};\nconst typeSummary = $('Get Report Type Summary').all().map(i => i.json).filter(r => r && r.report_type);\nconst recentReports = $('Get Recent Reports').all().map(i => i.json).filter(r => r && r.id);\nconst recentRefs = $('Get Recent References').all().map(i => i.json).filter(r => r && r.id);\nconst timeline = $('Get Monthly Timeline').all().map(i => i.json).filter(r => r && r.month);\n\n// ─── Arabic label maps for database enums ───\nconst crimeTypeAr = {\n  violent: 'جرائم العنف',\n  financial: 'الجرائم المالية',\n  cyber: 'الجرائم الإلكترونية',\n  trafficking: 'جرائم الاتجار بالبشر',\n  terrorism: 'الإرهاب',\n  ai_enabled: 'الجرائم المدعومة بالذكاء الاصطناعي',\n  children: 'الجرائم ضد الأطفال',\n  drugs: 'جرائم المخدرات',\n  organized_crime: 'الجريمة المنظمة',\n  other: 'أخرى'\n};\n\nconst sourceTypeAr = {\n  academic: 'أكاديمية',\n  governmental: 'حكومية',\n  international_org: 'منظمات دولية',\n  news: 'إخبارية'\n};\n\nconst regionAr = {\n  UAE: 'الإمارات',\n  GCC: 'دول الخليج',\n  Middle_East: 'الشرق الأوسط',\n  Europe: 'أوروبا',\n  Americas: 'الأمريكتان',\n  Africa: 'أفريقيا',\n  Asia: 'آسيا',\n  Oceania: 'أوقيانوسيا',\n  Global: 'عالمي'\n};\n\nconst reportTypeAr = {\n  daily: 'يومي',\n  weekly: 'أسبوعي',\n  monthly: 'شهري',\n  quarterly: 'ربع سنوي',\n  semiannual: 'نصف سنوي',\n  annual: 'سنوي'\n};\n\nconst monthAr = {\n  '01': 'يناير', '02': 'فبراير', '03': 'مارس', '04': 'أبريل',\n  '05': 'مايو', '06': 'يونيو', '07': 'يوليو', '08': 'أغسطس',\n  '09': 'سبتمبر', '10': 'أكتوبر', '11': 'نوفمبر', '12': 'ديسمبر'\n};\n\n// ─── Helpers ───\nfunction escapeHtml(text) {\n  if (text === null || text === undefined) return '';\n  return String(text)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction num(v) {\n  const n = Number(v);\n  return isNaN(n) ? 0 : n;\n}\n\nfunction fmtDate(d) {\n  if (!d) return '—';\n  try {\n    return new Date(d).toLocaleDateString('ar-AE', {\n      timeZone: 'Asia/Dubai', year: 'numeric', month: 'long', day: 'numeric'\n    });\n  } catch (e) {\n    return String(d);\n  }\n}\n\nfunction fmtDateTime(d) {\n  if (!d) return '—';\n  try {\n    return new Date(d).toLocaleString('ar-AE', {\n      timeZone: 'Asia/Dubai', year: 'numeric', month: 'short', day: 'numeric',\n      hour: '2-digit', minute: '2-digit'\n    });\n  } catch (e) {\n    return String(d);\n  }\n}\n\n// Horizontal bar list from a {key: count} object\nfunction barList(dataObj, labelMap) {\n  const entries = Object.entries(dataObj || {})\n    .map(([k, v]) => [k, num(v)])\n    .sort((a, b) => b[1] - a[1]);\n  if (entries.length === 0) {\n    return '<div class=\"empty\">لا توجد بيانات بعد</div>';\n  }\n  const max = Math.max(...entries.map(e => e[1]), 1);\n  return entries.map(([key, count]) => {\n    const label = (labelMap && labelMap[key]) || key;\n    const pct = Math.max(Math.round((count / max) * 100), 3);\n    return '<div class=\"bar-row\">' +\n      '<span class=\"bar-label\">' + escapeHtml(label) + '</span>' +\n      '<span class=\"bar-track\"><span class=\"bar-fill\" style=\"width:' + pct + '%\"></span></span>' +\n      '<span class=\"bar-value\">' + count + '</span>' +\n      '</div>';\n  }).join('');\n}\n\n// ─── Statistics ───\nconst totalReferences = num(statsRow.total_references);\nconst recentAdditions = num(statsRow.recent_additions);\nconst bySourceType = statsRow.by_source_type || {};\nconst byCrimeType = statsRow.by_crime_type || {};\nconst byRegion = statsRow.by_region || {};\nconst byYear = statsRow.by_year || {};\nconst mostAccessed = Array.isArray(statsRow.most_accessed) ? statsRow.most_accessed : [];\n\nconst totalReports = typeSummary.reduce((sum, r) => sum + num(r.total), 0);\nconst totalEmailsSent = typeSummary.reduce((sum, r) => sum + num(r.emails_sent), 0);\n\n// ─── Monthly timeline column chart ───\nlet timelineHtml;\nif (timeline.length === 0) {\n  timelineHtml = '<div class=\"empty\">لا توجد بيانات بعد</div>';\n} else {\n  const maxCnt = Math.max(...timeline.map(t => num(t.cnt)), 1);\n  timelineHtml = '<div class=\"columns\">' + timeline.map(t => {\n    const cnt = num(t.cnt);\n    const h = Math.max(Math.round((cnt / maxCnt) * 100), 4);\n    const parts = String(t.month).split('-');\n    const label = (monthAr[parts[1]] || parts[1] || '') + ' ' + (parts[0] || '');\n    return '<div class=\"column\">' +\n      '<span class=\"column-value\">' + cnt + '</span>' +\n      '<span class=\"column-bar\" style=\"height:' + h + '%\"></span>' +\n      '<span class=\"column-label\">' + escapeHtml(label) + '</span>' +\n      '</div>';\n  }).join('') + '</div>';\n}\n\n// ─── Report type summary table ───\nconst typeSummaryRows = typeSummary.length === 0\n  ? '<tr><td colspan=\"4\" class=\"empty\">لم يتم إنشاء أي تقارير بعد</td></tr>'\n  : Object.keys(reportTypeAr).map(type => {\n      const row = typeSummary.find(r => r.report_type === type);\n      if (!row) return '';\n      return '<tr>' +\n        '<td><span class=\"badge badge-' + type + '\">' + reportTypeAr[type] + '</span></td>' +\n        '<td>' + num(row.total) + '</td>' +\n        '<td>' + num(row.emails_sent) + '</td>' +\n        '<td>' + fmtDateTime(row.last_run) + '</td>' +\n        '</tr>';\n    }).join('');\n\n// ─── Recent reports table ───\nconst recentReportRows = recentReports.length === 0\n  ? '<tr><td colspan=\"6\" class=\"empty\">لم يتم إنشاء أي تقارير بعد</td></tr>'\n  : recentReports.map(r => {\n      const title = r.report_title_ar || r.report_title || '—';\n      const emailStatus = r.email_sent\n        ? '<span class=\"status status-ok\">✓ تم الإرسال</span>'\n        : '<span class=\"status status-pending\">لم يُرسل</span>';\n      return '<tr>' +\n        '<td><span class=\"badge badge-' + escapeHtml(r.report_type) + '\">' + (reportTypeAr[r.report_type] || escapeHtml(r.report_type)) + '</span></td>' +\n        '<td class=\"cell-title\">' + escapeHtml(title) + '</td>' +\n        '<td>' + fmtDate(r.report_date) + '</td>' +\n        '<td>' + num(r.references_count) + '</td>' +\n        '<td>' + num(r.word_count) + '</td>' +\n        '<td>' + emailStatus + '</td>' +\n        '</tr>';\n    }).join('');\n\n// ─── Recent references table ───\nconst recentRefRows = recentRefs.length === 0\n  ? '<tr><td colspan=\"5\" class=\"empty\">لا توجد مراجع بعد</td></tr>'\n  : recentRefs.map(r => {\n      const title = r.title_ar || r.title || '—';\n      const titleCell = r.url\n        ? '<a href=\"' + escapeHtml(r.url) + '\" target=\"_blank\" rel=\"noopener\">' + escapeHtml(title) + '</a>'\n        : escapeHtml(title);\n      const crimes = Array.isArray(r.crime_type)\n        ? r.crime_type.map(c => crimeTypeAr[c] || c).join('، ')\n        : '—';\n      const regions = Array.isArray(r.region)\n        ? r.region.map(g => regionAr[g] || g).join('، ')\n        : '—';\n      return '<tr>' +\n        '<td class=\"cell-title\">' + titleCell + '</td>' +\n        '<td>' + (sourceTypeAr[r.source_type] || escapeHtml(r.source_type)) + '</td>' +\n        '<td>' + escapeHtml(crimes) + '</td>' +\n        '<td>' + escapeHtml(regions) + '</td>' +\n        '<td>' + fmtDate(r.date_added) + '</td>' +\n        '</tr>';\n    }).join('');\n\n// ─── Most accessed references list ───\nconst mostAccessedHtml = mostAccessed.length === 0\n  ? '<div class=\"empty\">لا توجد بيانات بعد</div>'\n  : '<ol class=\"accessed-list\">' + mostAccessed.slice(0, 5).map(r =>\n      '<li><span class=\"accessed-title\">' + escapeHtml(r.title) + '</span>' +\n      '<span class=\"accessed-count\">' + num(r.access_count) + ' مرة</span></li>'\n    ).join('') + '</ol>';\n\nconst generatedAt = new Date().toLocaleString('ar-AE', {\n  timeZone: 'Asia/Dubai', dateStyle: 'full', timeStyle: 'short'\n});\n\n// ─── Assemble page ───\nconst html = '<!DOCTYPE html>' +\n'<html lang=\"ar\" dir=\"rtl\">' +\n'<head>' +\n'<meta charset=\"UTF-8\">' +\n'<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">' +\n'<title>لوحة معلومات الرصد الجنائي</title>' +\n'<style>' +\n'*{margin:0;padding:0;box-sizing:border-box}' +\n'body{font-family:\"Segoe UI\",Tahoma,\"Noto Kufi Arabic\",Arial,sans-serif;background:#eef1f7;color:#1c2333;line-height:1.6}' +\n'.header{background:linear-gradient(135deg,#14213d 0%,#1f3a63 100%);color:#fff;padding:32px 24px;text-align:center}' +\n'.header h1{font-size:26px;margin-bottom:4px}' +\n'.header .subtitle{font-size:14px;color:#c9d4e8;letter-spacing:1px}' +\n'.header .timestamp{margin-top:10px;font-size:13px;color:#9db2d4}' +\n'.container{max-width:1200px;margin:0 auto;padding:24px 16px}' +\n'.stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}' +\n'.stat-card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(20,33,61,.08);border-top:4px solid #1f3a63}' +\n'.stat-card .stat-value{font-size:34px;font-weight:700;color:#14213d}' +\n'.stat-card .stat-label{font-size:14px;color:#5a6a85;margin-top:4px}' +\n'.stat-card.accent-green{border-top-color:#0e7a4d}' +\n'.stat-card.accent-gold{border-top-color:#b8860b}' +\n'.stat-card.accent-teal{border-top-color:#0d7387}' +\n'.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:16px;margin-bottom:24px}' +\n'.panel{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(20,33,61,.08)}' +\n'.panel h2{font-size:17px;color:#14213d;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #eef1f7}' +\n'.panel h2 .en{font-size:11px;color:#8b99b3;font-weight:400;margin-inline-start:8px}' +\n'.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}' +\n'.bar-label{flex:0 0 165px;font-size:13px;color:#33415c}' +\n'.bar-track{flex:1;background:#eef1f7;border-radius:6px;height:16px;overflow:hidden}' +\n'.bar-fill{display:block;height:100%;background:linear-gradient(270deg,#1f3a63,#3f6bb0);border-radius:6px}' +\n'.bar-value{flex:0 0 36px;font-size:13px;font-weight:700;color:#14213d;text-align:center}' +\n'.columns{display:flex;align-items:flex-end;gap:8px;height:180px;padding-top:10px}' +\n'.column{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}' +\n'.column-value{font-size:11px;font-weight:700;color:#33415c;margin-bottom:3px}' +\n'.column-bar{display:block;width:70%;max-width:42px;background:linear-gradient(180deg,#3f6bb0,#1f3a63);border-radius:5px 5px 0 0;min-height:4px}' +\n'.column-label{font-size:10px;color:#8b99b3;margin-top:6px;white-space:nowrap}' +\n'table{width:100%;border-collapse:collapse;font-size:13px}' +\n'th{background:#f4f6fb;color:#33415c;text-align:right;padding:9px 10px;font-size:12px;border-bottom:2px solid #e3e8f2}' +\n'td{padding:9px 10px;border-bottom:1px solid #eef1f7;color:#33415c;vertical-align:top}' +\n'tr:hover td{background:#f9fafd}' +\n'.cell-title{max-width:380px}' +\n'.cell-title a{color:#1f5fbf;text-decoration:none}' +\n'.cell-title a:hover{text-decoration:underline}' +\n'.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;background:#e7edf7;color:#1f3a63}' +\n'.badge-daily{background:#e3f0ff;color:#1f5fbf}' +\n'.badge-weekly{background:#e6f6ee;color:#0e7a4d}' +\n'.badge-monthly{background:#fdf3e0;color:#a06a00}' +\n'.badge-quarterly{background:#f3e8fd;color:#7233b8}' +\n'.badge-semiannual{background:#e0f5f8;color:#0d7387}' +\n'.badge-annual{background:#fde8e8;color:#b43333}' +\n'.status{font-size:12px;font-weight:600}' +\n'.status-ok{color:#0e7a4d}' +\n'.status-pending{color:#a06a00}' +\n'.accessed-list{padding-inline-start:20px}' +\n'.accessed-list li{margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;gap:10px}' +\n'.accessed-title{color:#33415c}' +\n'.accessed-count{color:#1f3a63;font-weight:700;white-space:nowrap}' +\n'.empty{text-align:center;color:#8b99b3;padding:24px;font-size:14px}' +\n'.table-wrap{overflow-x:auto}' +\n'.footer{text-align:center;padding:20px;color:#8b99b3;font-size:12px}' +\n'@media(max-width:640px){.bar-label{flex-basis:110px}.column-label{transform:rotate(-45deg);margin-top:12px}}' +\n'</style>' +\n'</head>' +\n'<body>' +\n'<div class=\"header\">' +\n'<h1>لوحة معلومات الرصد الجنائي</h1>' +\n'<div class=\"subtitle\">CRIMINAL INTELLIGENCE DASHBOARD</div>' +\n'<div class=\"timestamp\">آخر تحديث: ' + generatedAt + ' (بتوقيت الإمارات)</div>' +\n'</div>' +\n'<div class=\"container\">' +\n\n// Stat cards\n'<div class=\"stat-cards\">' +\n'<div class=\"stat-card\"><div class=\"stat-value\">' + totalReferences + '</div><div class=\"stat-label\">إجمالي المراجع في قاعدة البيانات</div></div>' +\n'<div class=\"stat-card accent-green\"><div class=\"stat-value\">' + recentAdditions + '</div><div class=\"stat-label\">مراجع أُضيفت خلال آخر 30 يومًا</div></div>' +\n'<div class=\"stat-card accent-gold\"><div class=\"stat-value\">' + totalReports + '</div><div class=\"stat-label\">إجمالي التقارير المُنشأة</div></div>' +\n'<div class=\"stat-card accent-teal\"><div class=\"stat-value\">' + totalEmailsSent + '</div><div class=\"stat-label\">تقارير أُرسلت بالبريد الإلكتروني</div></div>' +\n'</div>' +\n\n// Distribution charts\n'<div class=\"grid-2\">' +\n'<div class=\"panel\"><h2>المراجع حسب نوع الجريمة<span class=\"en\">BY CRIME TYPE</span></h2>' + barList(byCrimeType, crimeTypeAr) + '</div>' +\n'<div class=\"panel\"><h2>المراجع حسب المنطقة الجغرافية<span class=\"en\">BY REGION</span></h2>' + barList(byRegion, regionAr) + '</div>' +\n'<div class=\"panel\"><h2>المراجع حسب نوع المصدر<span class=\"en\">BY SOURCE TYPE</span></h2>' + barList(bySourceType, sourceTypeAr) + '</div>' +\n'<div class=\"panel\"><h2>المراجع حسب سنة النشر<span class=\"en\">BY PUBLICATION YEAR</span></h2>' + barList(byYear, null) + '</div>' +\n'</div>' +\n\n// Monthly timeline\n'<div class=\"panel\" style=\"margin-bottom:24px\"><h2>المراجع المُضافة شهريًا — آخر 12 شهرًا<span class=\"en\">MONTHLY ADDITIONS</span></h2>' + timelineHtml + '</div>' +\n\n// Report activity\n'<div class=\"grid-2\">' +\n'<div class=\"panel\"><h2>نشاط التقارير حسب النوع<span class=\"en\">REPORT ACTIVITY</span></h2>' +\n'<div class=\"table-wrap\"><table><thead><tr><th>النوع</th><th>العدد</th><th>أُرسل بالبريد</th><th>آخر تشغيل</th></tr></thead><tbody>' + typeSummaryRows + '</tbody></table></div></div>' +\n'<div class=\"panel\"><h2>المراجع الأكثر استخدامًا<span class=\"en\">MOST ACCESSED</span></h2>' + mostAccessedHtml + '</div>' +\n'</div>' +\n\n// Recent reports\n'<div class=\"panel\" style=\"margin-top:24px\"><h2>أحدث التقارير<span class=\"en\">RECENT REPORTS</span></h2>' +\n'<div class=\"table-wrap\"><table><thead><tr><th>النوع</th><th>عنوان التقرير</th><th>تاريخ التقرير</th><th>المراجع</th><th>الكلمات</th><th>حالة الإرسال</th></tr></thead><tbody>' + recentReportRows + '</tbody></table></div></div>' +\n\n// Recent references\n'<div class=\"panel\" style=\"margin-top:24px\"><h2>أحدث المراجع المُضافة<span class=\"en\">RECENT REFERENCES</span></h2>' +\n'<div class=\"table-wrap\"><table><thead><tr><th>العنوان</th><th>نوع المصدر</th><th>نوع الجريمة</th><th>المنطقة</th><th>تاريخ الإضافة</th></tr></thead><tbody>' + recentRefRows + '</tbody></table></div></div>' +\n\n'</div>' +\n'<div class=\"footer\">نظام الرصد الجنائي الآلي — n8n Automated Criminal Intelligence Reports</div>' +\n'</body></html>';\n\nreturn { json: { html } };\n"
+      },
+      "id": "build-dashboard-html",
+      "name": "Build Dashboard HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-with-html",
+      "name": "Respond with HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1780,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Dashboard Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Statistics": {
+      "main": [
+        [
+          {
+            "node": "Get Report Type Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Report Type Summary": {
+      "main": [
+        [
+          {
+            "node": "Get Recent Reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent Reports": {
+      "main": [
+        [
+          {
+            "node": "Get Recent References",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent References": {
+      "main": [
+        [
+          {
+            "node": "Get Monthly Timeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Monthly Timeline": {
+      "main": [
+        [
+          {
+            "node": "Build Dashboard HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Dashboard HTML": {
+      "main": [
+        [
+          {
+            "node": "Respond with HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Dubai",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Criminal Intelligence",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "Dashboard",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
