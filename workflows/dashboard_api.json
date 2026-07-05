@@ -1,0 +1,435 @@
+{
+  "name": "Dashboard API - Live Data & Report Generator - واجهة لوحة المعلومات",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dashboard-api",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "dashboard-webhook",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        420
+      ],
+      "webhookId": "dashboard-api-webhook"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "outputKey": "get_dashboard_data",
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.operation }}",
+                    "rightValue": "GET_DASHBOARD_DATA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "generate_report",
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.operation }}",
+                    "rightValue": "GENERATE_REPORT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "route-operation",
+      "name": "Route by Operation",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        480,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build a safe, whitelisted SQL query from the dashboard filters\nconst body = $json.body || {};\nconst f = (body && typeof body.filters === 'object' && body.filters) ? body.filters : {};\n\nconst CRIME_TYPES = ['violent','financial','cyber','trafficking','terrorism','ai_enabled','children','drugs','organized_crime','other'];\nconst REGIONS = ['UAE','GCC','Middle_East','Europe','Americas','Africa','Asia','Oceania','Global'];\nconst SOURCE_TYPES = ['academic','governmental','international_org','news'];\nconst SCOPES = ['local','regional','international'];\n\nconst esc = (s) => String(s).replace(/'/g, \"''\");\nconst isDate = (s) => /^\\d{4}-\\d{2}-\\d{2}$/.test(String(s || ''));\n\nconst conditions = [];\n\nif (Array.isArray(f.crime_types)) {\n  const valid = f.crime_types.filter((c) => CRIME_TYPES.includes(c));\n  if (valid.length) {\n    conditions.push(`crime_type && ARRAY[${valid.map((c) => `'${c}'`).join(', ')}]::crime_type_enum[]`);\n  }\n}\n\nif (Array.isArray(f.regions)) {\n  const valid = f.regions.filter((r) => REGIONS.includes(r));\n  if (valid.length) {\n    conditions.push(`region && ARRAY[${valid.map((r) => `'${r}'`).join(', ')}]::region_enum[]`);\n  }\n}\n\nif (SOURCE_TYPES.includes(f.source_type)) conditions.push(`source_type = '${f.source_type}'`);\nif (SCOPES.includes(f.scope)) conditions.push(`geographical_scope = '${f.scope}'`);\nif (isDate(f.date_from)) conditions.push(`publication_date >= '${f.date_from}'`);\nif (isDate(f.date_to)) conditions.push(`publication_date <= '${f.date_to}'`);\n\nconst relevanceMin = parseInt(f.relevance_min, 10);\nif (relevanceMin >= 1 && relevanceMin <= 5) conditions.push(`relevance_score >= ${relevanceMin}`);\n\nif (typeof f.search === 'string' && f.search.trim()) {\n  const term = esc(f.search.trim());\n  conditions.push(`(title ILIKE '%${term}%' OR COALESCE(title_ar, '') ILIKE '%${term}%' OR COALESCE(abstract, '') ILIKE '%${term}%')`);\n}\n\nconst whereClause = conditions.length ? 'WHERE ' + conditions.join('\\n  AND ') : '';\nconst limit = Math.min(Math.max(parseInt(f.limit, 10) || 2000, 1), 5000);\n\nconst query = `SELECT id, title, title_ar, authors, publication_date, source_type, source_name, url,\n       crime_type, geographical_scope, region, language, relevance_score, date_added\nFROM criminal_references\n${whereClause}\nORDER BY publication_date DESC NULLS LAST, id DESC\nLIMIT ${limit};`;\n\nreturn [{ json: { query, filters: f } }];\n"
+      },
+      "id": "build-data-query",
+      "name": "Build Data Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.query }}",
+        "options": {}
+      },
+      "id": "execute-data-query",
+      "name": "Execute Data Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        980,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Wrap query rows in the dashboard response envelope\nconst rows = $input.all().map((i) => i.json).filter((r) => r && r.id !== undefined);\nreturn [{\n  json: {\n    success: true,\n    operation: 'GET_DASHBOARD_DATA',\n    count: rows.length,\n    generated_at: new Date().toISOString(),\n    records: rows,\n  },\n}];\n"
+      },
+      "id": "format-data-response",
+      "name": "Format Data Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build a safe, whitelisted SQL query from the dashboard filters\nconst body = $json.body || {};\nconst f = (body && typeof body.filters === 'object' && body.filters) ? body.filters : {};\n\nconst CRIME_TYPES = ['violent','financial','cyber','trafficking','terrorism','ai_enabled','children','drugs','organized_crime','other'];\nconst REGIONS = ['UAE','GCC','Middle_East','Europe','Americas','Africa','Asia','Oceania','Global'];\nconst SOURCE_TYPES = ['academic','governmental','international_org','news'];\nconst SCOPES = ['local','regional','international'];\n\nconst esc = (s) => String(s).replace(/'/g, \"''\");\nconst isDate = (s) => /^\\d{4}-\\d{2}-\\d{2}$/.test(String(s || ''));\n\nconst conditions = [];\n\nif (Array.isArray(f.crime_types)) {\n  const valid = f.crime_types.filter((c) => CRIME_TYPES.includes(c));\n  if (valid.length) {\n    conditions.push(`crime_type && ARRAY[${valid.map((c) => `'${c}'`).join(', ')}]::crime_type_enum[]`);\n  }\n}\n\nif (Array.isArray(f.regions)) {\n  const valid = f.regions.filter((r) => REGIONS.includes(r));\n  if (valid.length) {\n    conditions.push(`region && ARRAY[${valid.map((r) => `'${r}'`).join(', ')}]::region_enum[]`);\n  }\n}\n\nif (SOURCE_TYPES.includes(f.source_type)) conditions.push(`source_type = '${f.source_type}'`);\nif (SCOPES.includes(f.scope)) conditions.push(`geographical_scope = '${f.scope}'`);\nif (isDate(f.date_from)) conditions.push(`publication_date >= '${f.date_from}'`);\nif (isDate(f.date_to)) conditions.push(`publication_date <= '${f.date_to}'`);\n\nconst relevanceMin = parseInt(f.relevance_min, 10);\nif (relevanceMin >= 1 && relevanceMin <= 5) conditions.push(`relevance_score >= ${relevanceMin}`);\n\nif (typeof f.search === 'string' && f.search.trim()) {\n  const term = esc(f.search.trim());\n  conditions.push(`(title ILIKE '%${term}%' OR COALESCE(title_ar, '') ILIKE '%${term}%' OR COALESCE(abstract, '') ILIKE '%${term}%')`);\n}\n\nconst whereClause = conditions.length ? 'WHERE ' + conditions.join('\\n  AND ') : '';\nconst limit = Math.min(Math.max(parseInt(f.limit, 10) || 2000, 1), 5000);\n\nconst query = `SELECT id, title, title_ar, authors, publication_date, source_type, source_name, url,\n       crime_type, geographical_scope, region, language, relevance_score, date_added\nFROM criminal_references\n${whereClause}\nORDER BY publication_date DESC NULLS LAST, id DESC\nLIMIT ${limit};`;\n\nreturn [{ json: { query, filters: f } }];\n"
+      },
+      "id": "build-report-query",
+      "name": "Build Report Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.query }}",
+        "options": {}
+      },
+      "id": "execute-report-query",
+      "name": "Execute Report Query",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        980,
+        420
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate the filtered rows and prepare the report log INSERT\nconst rows = $input.all().map((i) => i.json).filter((r) => r && r.id !== undefined);\nconst meta = $('Build Report Query').first().json;\nconst f = meta.filters || {};\n\nconst esc = (s) => String(s).replace(/'/g, \"''\");\nconst isDate = (s) => /^\\d{4}-\\d{2}-\\d{2}$/.test(String(s || ''));\n\nconst toArray = (v) => {\n  if (Array.isArray(v)) return v;\n  if (typeof v === 'string') return v.replace(/^\\{|\\}$/g, '').split(',').map((x) => x.trim()).filter(Boolean);\n  return [];\n};\n\nconst byCrime = {};\nconst byRegion = {};\nconst bySource = {};\nfor (const r of rows) {\n  for (const c of toArray(r.crime_type)) byCrime[c] = (byCrime[c] || 0) + 1;\n  for (const g of toArray(r.region)) byRegion[g] = (byRegion[g] || 0) + 1;\n  if (r.source_type) bySource[r.source_type] = (bySource[r.source_type] || 0) + 1;\n}\n\nconst today = new Date().toISOString().slice(0, 10);\nconst reportTitle = `Criminal Intelligence Dashboard Report - ${today}`;\nconst reportTitleAr = `تقرير لوحة الرصد الجنائي التفاعلية - ${today}`;\nconst fileName = `dashboard_report_${today.replace(/-/g, '')}.html`;\nconst periodStart = isDate(f.date_from) ? `'${f.date_from}'` : 'NULL';\nconst periodEnd = isDate(f.date_to) ? `'${f.date_to}'` : 'NULL';\n\nconst query = `INSERT INTO reports (report_type, report_title, report_title_ar, report_date, period_start, period_end, file_name, references_count, sections_count)\nVALUES ('dashboard', '${esc(reportTitle)}', '${esc(reportTitleAr)}', '${today}', ${periodStart}, ${periodEnd}, '${esc(fileName)}', ${rows.length}, 4)\nRETURNING id;`;\n\nreturn [{\n  json: {\n    query,\n    report_title: reportTitle,\n    report_title_ar: reportTitleAr,\n    file_name: fileName,\n    count: rows.length,\n    stats: { by_crime_type: byCrime, by_region: byRegion, by_source_type: bySource },\n    filters: f,\n    records: rows.slice(0, 500),\n  },\n}];\n"
+      },
+      "id": "build-report-stats",
+      "name": "Build Report Stats",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.query }}",
+        "options": {}
+      },
+      "id": "log-report",
+      "name": "Log Report",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1460,
+        420
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "Criminal References DB"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine the report log result with the aggregated stats\nconst logRow = ($input.first() && $input.first().json) || {};\nconst build = $('Build Report Stats').first().json;\nreturn [{\n  json: {\n    success: true,\n    operation: 'GENERATE_REPORT',\n    report_id: logRow.id || null,\n    logged_to_database: Boolean(logRow.id),\n    report_title: build.report_title,\n    report_title_ar: build.report_title_ar,\n    file_name: build.file_name,\n    count: build.count,\n    stats: build.stats,\n    filters: build.filters,\n    records: build.records,\n    generated_at: new Date().toISOString(),\n  },\n}];\n"
+      },
+      "id": "format-report-response",
+      "name": "Format Report Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reject unsupported operations\nconst body = $json.body || {};\nreturn [{\n  json: {\n    success: false,\n    error: 'Unknown operation. Supported operations: GET_DASHBOARD_DATA, GENERATE_REPORT',\n    received_operation: body.operation || null,\n  },\n}];\n"
+      },
+      "id": "unknown-operation",
+      "name": "Unknown Operation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "id": "merge-responses",
+      "name": "Merge Responses",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1940,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2180,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Route by Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Operation": {
+      "main": [
+        [
+          {
+            "node": "Build Data Query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Report Query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unknown Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Data Query": {
+      "main": [
+        [
+          {
+            "node": "Execute Data Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Data Query": {
+      "main": [
+        [
+          {
+            "node": "Format Data Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Data Response": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Report Query": {
+      "main": [
+        [
+          {
+            "node": "Execute Report Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Report Query": {
+      "main": [
+        [
+          {
+            "node": "Build Report Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Report Stats": {
+      "main": [
+        [
+          {
+            "node": "Log Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Report": {
+      "main": [
+        [
+          {
+            "node": "Format Report Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Report Response": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Unknown Operation": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge Responses": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Dubai",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "active": false,
+  "pinData": {},
+  "tags": [
+    {
+      "name": "dashboard"
+    },
+    {
+      "name": "criminal-intelligence"
+    }
+  ]
+}

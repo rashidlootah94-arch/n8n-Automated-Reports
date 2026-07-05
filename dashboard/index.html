@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Criminal Intelligence Dashboard — لوحة الرصد الجنائي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/world.js"></script>
+<style>
+  :root {
+    --page: #0a0e1a;
+    --surface: #0f172e;
+    --surface-2: #131c36;
+    --border: rgba(122, 152, 210, 0.16);
+    --ink: #eef2fb;
+    --ink-2: #aeb8d0;
+    --muted: #8b93a7;
+    --grid: #202b4a;
+    --good: #0ca30c;
+    --bad: #e66767;
+    --accent: #3987e5;
+    --r-uae: #d95926; --r-gcc: #3987e5; --r-me: #c98500; --r-eu: #9085e9;
+    --r-am: #199e70; --r-af: #008300; --r-as: #e66767; --r-oc: #d55181; --r-gl: #8b93a7;
+    --font: 'Inter', 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scrollbar-color: #2a355a var(--page); }
+  body {
+    background: var(--page);
+    background-image: radial-gradient(1200px 500px at 70% -10%, rgba(57, 135, 229, 0.08), transparent 60%),
+                      radial-gradient(900px 400px at 10% 110%, rgba(144, 133, 233, 0.06), transparent 60%);
+    color: var(--ink);
+    font-family: var(--font);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+  .wrap { max-width: 1480px; margin: 0 auto; padding: 18px 22px 40px; }
+
+  /* ── Topbar ── */
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 6px 2px 14px; }
+  .brand .kicker { font-size: 11px; letter-spacing: 3px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+  .brand .kicker::after { content: ""; display: inline-block; width: 46px; height: 1px; background: var(--border); margin: 3px 10px; vertical-align: middle; }
+  .brand h1 { font-size: clamp(22px, 3.2vw, 36px); font-weight: 800; line-height: 1.05; letter-spacing: 0.5px; }
+  .brand h1 .yr { color: var(--accent); }
+  .brand .sub { color: var(--ink-2); margin-top: 6px; font-size: 13px; }
+  .top-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .badge { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 1px; border: 1px solid var(--border); }
+  .badge .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .badge.live { color: #35d07f; border-color: rgba(53, 208, 127, 0.4); }
+  .badge.live .dot { background: #35d07f; box-shadow: 0 0 8px #35d07f; animation: pulse 1.6s infinite; }
+  .badge.demo { color: #f5b84d; border-color: rgba(245, 184, 77, 0.4); }
+  .badge.demo .dot { background: #f5b84d; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .btn { background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; font-family: var(--font); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .btn:hover { border-color: rgba(122, 152, 210, 0.45); background: #182242; }
+  .btn.primary { background: linear-gradient(135deg, #1c5cab, #3987e5); border-color: rgba(57, 135, 229, 0.6); }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .updated { color: var(--muted); font-size: 11.5px; }
+
+  /* ── Filter bar ── */
+  .filters { position: sticky; top: 0; z-index: 40; background: rgba(10, 14, 26, 0.92); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; }
+  .f-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .f-row + .f-row { margin-top: 10px; }
+  .f-label { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .chip { border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); padding: 5px 11px; border-radius: 999px; font-size: 12px; font-family: var(--font); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
+  .chip .sw { width: 8px; height: 8px; border-radius: 2px; }
+  .chip:hover { border-color: rgba(122, 152, 210, 0.5); }
+  .chip.on { color: var(--ink); background: var(--surface-2); border-color: currentColor; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05); }
+  select, input[type="date"], input[type="search"] { background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 9px; padding: 7px 10px; font-family: var(--font); font-size: 12.5px; color-scheme: dark; }
+  input[type="search"] { min-width: 180px; }
+  .active-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .a-chip { background: rgba(57, 135, 229, 0.14); border: 1px solid rgba(57, 135, 229, 0.45); color: #9cc4f2; border-radius: 999px; padding: 4px 10px; font-size: 11.5px; display: inline-flex; gap: 7px; align-items: center; }
+  .a-chip button { background: none; border: none; color: inherit; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+
+  /* ── Cards & grids ── */
+  .card { background: linear-gradient(180deg, var(--surface), #0d1428); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35); }
+  .card h3 { font-size: 11px; letter-spacing: 2px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
+  .hero-grid { display: grid; grid-template-columns: 1.35fr repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+  .hero .big { font-size: clamp(34px, 4vw, 52px); font-weight: 800; line-height: 1; }
+  .hero .big small { font-size: 0.42em; color: var(--ink-2); font-weight: 600; }
+  .hero .of { color: var(--muted); font-size: 11.5px; margin-top: 6px; }
+  .delta { font-size: 12.5px; font-weight: 700; margin-top: 8px; display: inline-flex; align-items: center; gap: 5px; }
+  .delta.up { color: var(--good); }
+  .delta.down { color: var(--bad); }
+  .delta.flat { color: var(--muted); }
+  .delta .vs { color: var(--muted); font-weight: 400; }
+  .kpi .ico { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; margin-bottom: 9px; }
+  .kpi .val { font-size: 26px; font-weight: 800; }
+  .kpi .lbl { color: var(--ink-2); font-size: 11.5px; margin-top: 2px; }
+
+  .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .chart { width: 100%; }
+  #mapChart { height: 460px; }
+  #regionChart { height: 460px; }
+  #timeChart { height: 330px; }
+  #donutChart { height: 330px; }
+  .hint { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .showing-tag { display: inline-flex; align-items: center; gap: 8px; background: rgba(217, 89, 38, 0.14); border: 1px solid rgba(217, 89, 38, 0.5); color: #f0a37e; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; margin-inline-start: 10px; }
+  .showing-tag button { background: none; border: none; color: inherit; cursor: pointer; font-size: 14px; padding: 0; }
+
+  .empty-banner { display: none; background: rgba(230, 103, 103, 0.1); border: 1px solid rgba(230, 103, 103, 0.4); color: #f0a1a1; border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; font-weight: 600; }
+  .empty-banner.show { display: block; }
+
+  /* ── Table ── */
+  details.tbl { margin-bottom: 12px; }
+  details.tbl summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  details.tbl summary::-webkit-details-marker { display: none; }
+  .tbl-wrap { overflow-x: auto; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { text-align: start; color: var(--muted); font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; padding: 8px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  td { padding: 9px 10px; border-bottom: 1px solid rgba(32, 43, 74, 0.55); vertical-align: top; }
+  td a { color: #7fb3ee; text-decoration: none; }
+  td a:hover { text-decoration: underline; }
+  .t-chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 600; margin: 1px 2px; border: 1px solid; }
+  .num { font-variant-numeric: tabular-nums; }
+  .foot { color: var(--muted); font-size: 11.5px; text-align: center; padding-top: 8px; }
+
+  /* ── Modal / toast ── */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(4, 6, 12, 0.7); z-index: 100; align-items: center; justify-content: center; }
+  .overlay.show { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px; width: min(520px, 92vw); }
+  .modal h4 { margin-bottom: 6px; font-size: 16px; }
+  .modal p { color: var(--ink-2); font-size: 12.5px; margin-bottom: 12px; line-height: 1.6; }
+  .modal input[type="url"] { width: 100%; background: var(--page); color: var(--ink); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; font-family: var(--font); font-size: 13px; direction: ltr; }
+  .modal .m-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; flex-wrap: wrap; }
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--border); color: var(--ink); padding: 11px 20px; border-radius: 12px; font-size: 13px; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.25s; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 90vw; }
+  #toast.show { opacity: 1; }
+
+  @media (max-width: 1100px) {
+    .hero-grid { grid-template-columns: 1fr 1fr; }
+    .hero { grid-column: span 2; }
+    .main-grid { grid-template-columns: 1fr; }
+    #mapChart { height: 400px; }
+    #regionChart { height: 360px; }
+  }
+  @media (max-width: 640px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero { grid-column: span 1; }
+    .wrap { padding: 12px 12px 30px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="kicker" data-i="kicker">رؤى عالمية</div>
+      <h1><span data-i="title1">الرصد الجنائي</span><br><span data-i="title2">لوحة المعلومات</span> <span class="yr" id="yearSpan">2026</span></h1>
+      <div class="sub" data-i="subtitle">رؤى مبنية على البيانات من قاعدة المراجع الجنائية</div>
+    </div>
+    <div class="top-actions">
+      <span class="badge demo" id="modeBadge"><span class="dot"></span><span id="modeText">…</span></span>
+      <span class="updated" id="lastUpdated"></span>
+      <button class="btn" id="btnLang">English</button>
+      <button class="btn" id="btnSettings" data-i="settings">مصدر البيانات</button>
+      <button class="btn" id="btnRefresh" data-i="refresh">تحديث</button>
+      <button class="btn primary" id="btnReport" data-i="genReport">📄 إنشاء تقرير</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="f-row">
+      <span class="f-label" data-i="fCrime">نوع الجريمة</span>
+      <div id="crimeChips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    </div>
+    <div class="f-row">
+      <span class="f-label" data-i="fMore">فلاتر</span>
+      <select id="selRegion"></select>
+      <select id="selSource"></select>
+      <select id="selScope"></select>
+      <select id="selScore"></select>
+      <input type="date" id="dateFrom" title="From">
+      <input type="date" id="dateTo" title="To">
+      <input type="search" id="txtSearch" placeholder="بحث في العناوين…">
+      <button class="btn" id="btnReset" data-i="reset">إعادة تعيين</button>
+    </div>
+    <div class="f-row" id="activeRow" style="display:none;">
+      <span class="f-label" data-i="fActive">الفلاتر النشطة</span>
+      <div class="active-chips" id="activeChips"></div>
+    </div>
+  </div>
+
+  <div class="empty-banner" id="emptyBanner" data-i="noData">لا توجد سجلات مطابقة للفلاتر الحالية</div>
+
+  <!-- Hero + KPIs -->
+  <div class="hero-grid">
+    <div class="card hero">
+      <h3 data-i="totalRefs">إجمالي المراجع</h3>
+      <div class="big"><span id="heroVal" class="num">0</span></div>
+      <div class="delta flat" id="heroDelta"></div>
+      <div class="of" id="heroOf"></div>
+    </div>
+    <div class="card kpi">
+      <div class="ico" style="background:rgba(57,135,229,0.16);">🖥️</div>
+      <div class="val num" id="kpiCyberVal">0</div>
+      <div class="lbl" data-i="kpiCyber">سيبرانية وذكاء اصطناعي</div>
+      <div class="delta flat" id="kpiCyberDelta"></div>
+    </div>
+    <div class="card kpi">
+      <div class="ico" style="background:rgba(217,89,38,0.16);">⚠️</div>
+      <div class="val num" id="kpiTerrorVal">0</div>
+      <div class="lbl" data-i="kpiTerror">إرهاب وجريمة منظمة</div>
+      <div class="delta flat" id="kpiTerrorDelta"></div>
+    </div>
+    <div class="card kpi">
+      <div class="ico" style="background:rgba(144,133,233,0.16);">⭐</div>
+      <div class="val num" id="kpiScoreVal">0</div>
+      <div class="lbl" data-i="kpiScore">متوسط درجة الأهمية</div>
+      <div class="delta flat" id="kpiScoreDelta"></div>
+    </div>
+    <div class="card kpi">
+      <div class="ico" style="background:rgba(25,158,112,0.16);">🆕</div>
+      <div class="val num" id="kpiNewVal">0</div>
+      <div class="lbl" data-i="kpiNew">مضافة (آخر 30 يوم)</div>
+      <div class="delta flat" id="kpiNewDelta"></div>
+    </div>
+  </div>
+
+  <!-- Map + region ranking -->
+  <div class="main-grid">
+    <div class="card">
+      <h3><span data-i="mapTitle">التوزيع الجغرافي</span><span class="showing-tag" id="showingTag" style="display:none;"></span></h3>
+      <div id="mapChart" class="chart"></div>
+      <div class="hint" data-i="mapHint">اضغط على أي دولة أو مؤشر لفلترة اللوحة كاملة حسب المنطقة — اضغط مرة أخرى للإلغاء</div>
+    </div>
+    <div class="card">
+      <h3 data-i="regionTitle">المراجع حسب المنطقة</h3>
+      <div id="regionChart" class="chart"></div>
+    </div>
+  </div>
+
+  <!-- Time + donut -->
+  <div class="main-grid" style="grid-template-columns:2fr 1fr;">
+    <div class="card">
+      <h3 data-i="timeTitle">أنواع الجرائم عبر الزمن</h3>
+      <div id="timeChart" class="chart"></div>
+    </div>
+    <div class="card">
+      <h3 data-i="donutTitle">توزيع أنواع المصادر</h3>
+      <div id="donutChart" class="chart"></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <details class="tbl card" id="tblDetails">
+    <summary>
+      <h3 style="margin:0;"><span data-i="tblTitle">المراجع (حسب الفلاتر)</span> — <span id="tblCount" class="num">0</span></h3>
+      <button class="btn" id="btnCsv" data-i="exportCsv">⬇ تصدير CSV</button>
+    </summary>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-i="thDate">التاريخ</th>
+            <th data-i="thTitle">العنوان</th>
+            <th data-i="thSource">المصدر</th>
+            <th data-i="thCrime">نوع الجريمة</th>
+            <th data-i="thRegion">المنطقة</th>
+            <th data-i="thScore">الدرجة</th>
+          </tr>
+        </thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+    <div class="foot" id="tblShowing"></div>
+  </details>
+
+  <div class="foot" data-i="footer">المصدر: قاعدة بيانات المراجع الجنائية — n8n Automated Reports</div>
+</div>
+
+<!-- Settings modal -->
+<div class="overlay" id="settingsOverlay">
+  <div class="modal">
+    <h4 data-i="setTitle">مصدر البيانات المباشر (n8n)</h4>
+    <p data-i="setDesc">أدخل رابط الـ Webhook الخاص بسير عمل "Dashboard API" في n8n. اتركه فارغاً لاستخدام البيانات التجريبية.</p>
+    <input type="url" id="webhookInput" placeholder="https://your-n8n.example.com/webhook/dashboard-api">
+    <div class="m-actions">
+      <button class="btn" id="btnDemoMode" data-i="useDemo">استخدام البيانات التجريبية</button>
+      <button class="btn" id="btnCancelSet" data-i="cancel">إلغاء</button>
+      <button class="btn primary" id="btnSaveSet" data-i="saveConnect">حفظ واتصال</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ═════════════════════════ Constants & i18n ═════════════════════════ */
+const FONTS = "'Inter','IBM Plex Sans Arabic',system-ui,sans-serif";
+const PAGE_BG = '#0a0e1a';
+const CRIME_ORDER = ['violent','financial','cyber','trafficking','terrorism','ai_enabled','drugs','organized_crime','children','other'];
+const REGION_ORDER = ['UAE','GCC','Middle_East','Europe','Americas','Africa','Asia','Oceania','Global'];
+const SOURCE_ORDER = ['governmental','international_org','academic','news'];
+const SCOPE_ORDER = ['local','regional','international'];
+
+/* Validated dark categorical slots (see dataviz palette); children/other fold to neutrals */
+const CRIME_COLORS = {
+  violent: '#e66767', financial: '#c98500', cyber: '#3987e5', trafficking: '#d55181',
+  terrorism: '#d95926', ai_enabled: '#9085e9', drugs: '#199e70', organized_crime: '#008300',
+  children: '#a8b2c7', other: '#6b7a8f',
+};
+const REGION_COLORS = {
+  UAE: '#d95926', GCC: '#3987e5', Middle_East: '#c98500', Europe: '#9085e9',
+  Americas: '#199e70', Africa: '#008300', Asia: '#e66767', Oceania: '#d55181', Global: '#8b93a7',
+};
+const SOURCE_COLORS = { governmental: '#3987e5', international_org: '#199e70', academic: '#9085e9', news: '#c98500' };
+
+const CRIME_LABELS = {
+  violent: { en: 'Violent', ar: 'جرائم عنف' },
+  financial: { en: 'Financial', ar: 'جرائم مالية' },
+  cyber: { en: 'Cyber', ar: 'جرائم سيبرانية' },
+  trafficking: { en: 'Trafficking', ar: 'اتجار بالبشر' },
+  terrorism: { en: 'Terrorism', ar: 'إرهاب' },
+  ai_enabled: { en: 'AI-Enabled', ar: 'جرائم الذكاء الاصطناعي' },
+  drugs: { en: 'Drugs', ar: 'مخدرات' },
+  organized_crime: { en: 'Organized Crime', ar: 'جريمة منظمة' },
+  children: { en: 'Against Children', ar: 'جرائم ضد الأطفال' },
+  other: { en: 'Other', ar: 'أخرى' },
+};
+const REGION_LABELS = {
+  UAE: { en: 'UAE', ar: 'الإمارات' }, GCC: { en: 'GCC', ar: 'دول الخليج' },
+  Middle_East: { en: 'Middle East', ar: 'الشرق الأوسط' }, Europe: { en: 'Europe', ar: 'أوروبا' },
+  Americas: { en: 'Americas', ar: 'الأمريكتان' }, Africa: { en: 'Africa', ar: 'أفريقيا' },
+  Asia: { en: 'Asia', ar: 'آسيا' }, Oceania: { en: 'Oceania', ar: 'أوقيانوسيا' }, Global: { en: 'Global', ar: 'عالمي' },
+};
+const SOURCE_LABELS = {
+  academic: { en: 'Academic', ar: 'أكاديمي' }, governmental: { en: 'Governmental', ar: 'حكومي' },
+  international_org: { en: 'International Org', ar: 'منظمات دولية' }, news: { en: 'News', ar: 'أخبار' },
+};
+const SCOPE_LABELS = {
+  local: { en: 'Local', ar: 'محلي' }, regional: { en: 'Regional', ar: 'إقليمي' }, international: { en: 'International', ar: 'دولي' },
+};
+
+const I18N = {
+  en: {
+    kicker: 'GLOBAL INSIGHTS', title1: 'CRIMINAL INTELLIGENCE', title2: 'MONITORING DASHBOARD',
+    subtitle: 'Data-driven insights from the criminal references database',
+    settings: 'Data Source', refresh: 'Refresh', genReport: '📄 Generate Report',
+    live: 'LIVE', demo: 'DEMO DATA', connecting: 'CONNECTING…', lastUpdated: 'Updated',
+    fCrime: 'Crime Type', fMore: 'Filters', fActive: 'Active', reset: 'Reset',
+    searchPh: 'Search titles…', allRegions: 'All Regions', allSources: 'All Sources',
+    allScopes: 'All Scopes', anyScore: 'Any Relevance', scoreMin: 'Relevance ≥ ',
+    totalRefs: 'TOTAL REFERENCES', vsPrev: 'vs previous period', ofTotal: 'of {n} records in database',
+    kpiCyber: 'Cyber & AI-Enabled', kpiTerror: 'Terrorism & Organized', kpiScore: 'Avg Relevance Score', kpiNew: 'Added (last 30 days)',
+    mapTitle: 'GLOBAL DISTRIBUTION', mapHint: 'Click any country or marker to filter the whole dashboard by region — click again to clear',
+    regionTitle: 'REFERENCES BY REGION', timeTitle: 'CRIME TYPES OVER TIME', donutTitle: 'SOURCE TYPE SHARE',
+    officialShare: 'OFFICIAL\nSOURCES', tblTitle: 'REFERENCES (FILTERED)', exportCsv: '⬇ Export CSV',
+    thDate: 'Date', thTitle: 'Title', thSource: 'Source', thCrime: 'Crime Type', thRegion: 'Region', thScore: 'Score',
+    showing: 'Showing {a} of {b}', noData: 'No records match the current filters',
+    footer: 'Source: Criminal Intelligence Reference Database — n8n Automated Reports',
+    setTitle: 'Live Data Source (n8n)', setDesc: 'Enter the webhook URL of the "Dashboard API" n8n workflow. Leave empty to use demo data.',
+    useDemo: 'Use Demo Data', cancel: 'Cancel', saveConnect: 'Save & Connect',
+    toastLive: 'Connected — live data loaded', toastDemo: 'Demo data in use (no live connection)',
+    toastFail: 'Could not reach n8n webhook — falling back to demo data',
+    toastLogged: 'Report logged in the database (report #{id})', toastLocal: 'Report generated locally (demo mode — not logged)',
+    toastPopup: 'Popup blocked — report downloaded as an HTML file instead',
+    reportTitle: 'Criminal Intelligence Report', reportGenerated: 'Generated', reportFilters: 'Active filters',
+    reportNone: 'None (all data)', print: '🖨 Print / Save as PDF', reportRefs: 'References included',
+    byCrime: 'By Crime Type', byRegion: 'By Region', bySource: 'By Source Type', count: 'Count', share: 'Share',
+    months: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  },
+  ar: {
+    kicker: 'رؤى عالمية', title1: 'الرصد الجنائي', title2: 'لوحة المعلومات',
+    subtitle: 'رؤى مبنية على البيانات من قاعدة المراجع الجنائية',
+    settings: 'مصدر البيانات', refresh: 'تحديث', genReport: '📄 إنشاء تقرير',
+    live: 'مباشر', demo: 'بيانات تجريبية', connecting: 'جاري الاتصال…', lastUpdated: 'آخر تحديث',
+    fCrime: 'نوع الجريمة', fMore: 'فلاتر', fActive: 'الفلاتر النشطة', reset: 'إعادة تعيين',
+    searchPh: 'بحث في العناوين…', allRegions: 'كل المناطق', allSources: 'كل المصادر',
+    allScopes: 'كل النطاقات', anyScore: 'أي درجة أهمية', scoreMin: 'درجة الأهمية ≥ ',
+    totalRefs: 'إجمالي المراجع', vsPrev: 'مقارنة بالفترة السابقة', ofTotal: 'من أصل {n} سجل في قاعدة البيانات',
+    kpiCyber: 'سيبرانية وذكاء اصطناعي', kpiTerror: 'إرهاب وجريمة منظمة', kpiScore: 'متوسط درجة الأهمية', kpiNew: 'مضافة (آخر 30 يوم)',
+    mapTitle: 'التوزيع الجغرافي', mapHint: 'اضغط على أي دولة أو مؤشر لفلترة اللوحة كاملة حسب المنطقة — اضغط مرة أخرى للإلغاء',
+    regionTitle: 'المراجع حسب المنطقة', timeTitle: 'أنواع الجرائم عبر الزمن', donutTitle: 'توزيع أنواع المصادر',
+    officialShare: 'مصادر\nرسمية', tblTitle: 'المراجع (حسب الفلاتر)', exportCsv: '⬇ تصدير CSV',
+    thDate: 'التاريخ', thTitle: 'العنوان', thSource: 'المصدر', thCrime: 'نوع الجريمة', thRegion: 'المنطقة', thScore: 'الدرجة',
+    showing: 'عرض {a} من {b}', noData: 'لا توجد سجلات مطابقة للفلاتر الحالية',
+    footer: 'المصدر: قاعدة بيانات المراجع الجنائية — n8n Automated Reports',
+    setTitle: 'مصدر البيانات المباشر (n8n)', setDesc: 'أدخل رابط الـ Webhook الخاص بسير عمل "Dashboard API" في n8n. اتركه فارغاً لاستخدام البيانات التجريبية.',
+    useDemo: 'استخدام البيانات التجريبية', cancel: 'إلغاء', saveConnect: 'حفظ واتصال',
+    toastLive: 'تم الاتصال — البيانات المباشرة محمّلة', toastDemo: 'يتم استخدام بيانات تجريبية (لا يوجد اتصال مباشر)',
+    toastFail: 'تعذّر الوصول إلى n8n — تم التحويل إلى البيانات التجريبية',
+    toastLogged: 'تم تسجيل التقرير في قاعدة البيانات (تقرير رقم {id})', toastLocal: 'تم إنشاء التقرير محلياً (وضع تجريبي — لم يُسجَّل)',
+    toastPopup: 'تم حظر النافذة المنبثقة — تم تنزيل التقرير كملف HTML',
+    reportTitle: 'تقرير الرصد الجنائي', reportGenerated: 'تاريخ الإنشاء', reportFilters: 'الفلاتر النشطة',
+    reportNone: 'لا يوجد (كل البيانات)', print: '🖨 طباعة / حفظ PDF', reportRefs: 'المراجع المضمّنة',
+    byCrime: 'حسب نوع الجريمة', byRegion: 'حسب المنطقة', bySource: 'حسب نوع المصدر', count: 'العدد', share: 'النسبة',
+    months: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'],
+  },
+};
+
+/* ── Country → region mapping (ECharts world map names) ── */
+const REGION_COUNTRIES = {
+  UAE: ['United Arab Emirates'],
+  GCC: ['Saudi Arabia', 'Kuwait', 'Qatar', 'Bahrain', 'Oman'],
+  Middle_East: ['Iraq', 'Iran', 'Jordan', 'Lebanon', 'Syria', 'Israel', 'Palestine', 'Yemen', 'Turkey', 'Egypt', 'Cyprus'],
+  Europe: ['Albania','Austria','Belarus','Belgium','Bosnia and Herz.','Bulgaria','Croatia','Czech Rep.','Denmark','Estonia','Finland','France','Germany','Greece','Hungary','Iceland','Ireland','Italy','Kosovo','Latvia','Lithuania','Luxembourg','Macedonia','Moldova','Montenegro','Netherlands','Norway','Poland','Portugal','Romania','Serbia','Slovakia','Slovenia','Spain','Sweden','Switzerland','Ukraine','United Kingdom'],
+  Americas: ['United States','Canada','Mexico','Greenland','Guatemala','Belize','Honduras','El Salvador','Nicaragua','Costa Rica','Panama','Cuba','Haiti','Dominican Rep.','Jamaica','Puerto Rico','Trinidad and Tobago','Bahamas','Colombia','Venezuela','Guyana','Suriname','Ecuador','Peru','Brazil','Bolivia','Paraguay','Chile','Argentina','Uruguay','Falkland Is.'],
+  Africa: ['Morocco','Algeria','Tunisia','Libya','Sudan','S. Sudan','Mauritania','Mali','Niger','Chad','Senegal','Gambia','Guinea-Bissau','Guinea','Sierra Leone','Liberia',"Côte d'Ivoire",'Ghana','Togo','Benin','Burkina Faso','Nigeria','Cameroon','Central African Rep.','Eq. Guinea','Gabon','Congo','Dem. Rep. Congo','Uganda','Kenya','Ethiopia','Eritrea','Djibouti','Somalia','Somaliland','Rwanda','Burundi','Tanzania','Angola','Zambia','Malawi','Mozambique','Zimbabwe','Botswana','Namibia','South Africa','Lesotho','Swaziland','Madagascar','W. Sahara'],
+  Asia: ['Russia','Kazakhstan','Uzbekistan','Turkmenistan','Kyrgyzstan','Tajikistan','Afghanistan','Pakistan','India','Nepal','Bhutan','Bangladesh','Sri Lanka','Myanmar','Thailand','Lao PDR','Vietnam','Cambodia','Malaysia','Indonesia','Brunei','Philippines','China','Mongolia','Korea','Dem. Rep. Korea','Japan','Armenia','Azerbaijan','Georgia','Timor-Leste'],
+  Oceania: ['Australia','New Zealand','Papua New Guinea','Fiji','Solomon Is.','Vanuatu','New Caledonia'],
+};
+const COUNTRY_TO_REGION = {};
+for (const [rk, list] of Object.entries(REGION_COUNTRIES)) for (const c of list) COUNTRY_TO_REGION[c] = rk;
+
+const REGION_CENTROIDS = {
+  UAE: [54.2, 23.9], GCC: [43.5, 20.5], Middle_East: [37.0, 36.5], Europe: [12.0, 50.0],
+  Americas: [-88.0, 22.0], Africa: [20.0, 3.0], Asia: [93.0, 42.0], Oceania: [140.0, -24.0],
+};
+const MARKER_LABEL_POS = {
+  UAE: 'right', GCC: 'bottom', Middle_East: 'top', Europe: 'top',
+  Americas: 'top', Africa: 'bottom', Asia: 'top', Oceania: 'top',
+};
+
+/* ═════════════════════════ State ═════════════════════════ */
+const state = {
+  lang: localStorage.getItem('dash_lang') || 'ar',
+  mode: 'demo', // 'live' | 'demo'
+  all: [],
+  filtered: [],
+  filteredNoDate: [],
+  legendSel: null,
+  filters: { crimeTypes: [], regions: [], sourceType: '', scope: '', dateFrom: '', dateTo: '', relevanceMin: 0, search: '' },
+};
+const charts = {};
+
+/* ═════════════════════════ Helpers ═════════════════════════ */
+const $id = (x) => document.getElementById(x);
+const T = (k) => (I18N[state.lang][k] !== undefined ? I18N[state.lang][k] : k);
+const CL = (k) => (CRIME_LABELS[k] ? CRIME_LABELS[k][state.lang] : k);
+const RL = (k) => (REGION_LABELS[k] ? REGION_LABELS[k][state.lang] : k);
+const SL = (k) => (SOURCE_LABELS[k] ? SOURCE_LABELS[k][state.lang] : k);
+const fmt = (n) => Number(n || 0).toLocaleString('en-US');
+const escHtml = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+function hexToRgba(hex, a) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function toArr(v) {
+  if (Array.isArray(v)) return v;
+  if (typeof v === 'string') return v.replace(/^\{|\}$/g, '').split(',').map((x) => x.trim().replace(/^"|"$/g, '')).filter(Boolean);
+  return [];
+}
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function weightedPick(rand, pairs) {
+  const total = pairs.reduce((s, p) => s + p[1], 0);
+  let x = rand() * total;
+  for (const [v, w] of pairs) { x -= w; if (x <= 0) return v; }
+  return pairs[pairs.length - 1][0];
+}
+function toast(msg, ms) {
+  const el = $id('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), ms || 3500);
+}
+const tooltipStyle = {
+  backgroundColor: 'rgba(13,20,38,0.96)',
+  borderColor: 'rgba(122,152,210,0.35)',
+  borderWidth: 1,
+  textStyle: { color: '#eef2fb', fontSize: 12, fontFamily: FONTS },
+};
+
+/* ═════════════════════════ Demo data ═════════════════════════ */
+const TITLE_TPL = {
+  violent: { en: 'Violent Crime Trends and Prevention Measures in {r}', ar: 'اتجاهات جرائم العنف وتدابير الوقاية في {r}' },
+  financial: { en: 'Financial Fraud and Money Laundering Report — {r}', ar: 'تقرير الاحتيال المالي وغسل الأموال — {r}' },
+  cyber: { en: 'Cybercrime Threat Landscape Assessment for {r}', ar: 'تقييم مشهد تهديدات الجرائم السيبرانية في {r}' },
+  trafficking: { en: 'Human Trafficking Patterns and Routes in {r}', ar: 'أنماط ومسارات الاتجار بالبشر في {r}' },
+  terrorism: { en: 'Counter-Terrorism Analysis and Threat Report — {r}', ar: 'تحليل مكافحة الإرهاب وتقرير التهديدات — {r}' },
+  ai_enabled: { en: 'AI-Enabled Crime: Deepfakes and Automated Fraud in {r}', ar: 'الجرائم بالذكاء الاصطناعي: التزييف العميق والاحتيال الآلي في {r}' },
+  drugs: { en: 'Drug Trafficking and Narcotics Seizures in {r}', ar: 'تهريب المخدرات وعمليات الضبط في {r}' },
+  organized_crime: { en: 'Organized Crime Networks Operating Across {r}', ar: 'شبكات الجريمة المنظمة العاملة في {r}' },
+  children: { en: 'Crimes Against Children: Online Exploitation Study — {r}', ar: 'الجرائم ضد الأطفال: دراسة الاستغلال الإلكتروني — {r}' },
+  other: { en: 'Emerging Criminal Phenomena Observatory Report — {r}', ar: 'تقرير مرصد الظواهر الإجرامية الناشئة — {r}' },
+};
+const SOURCE_NAMES = {
+  academic: ['Journal of Criminology', 'Crime Science Review', 'Security Studies Quarterly'],
+  governmental: ['UAE Ministry of Interior', 'Dubai Police', 'Abu Dhabi Judicial Department', 'Europol'],
+  international_org: ['UNODC', 'INTERPOL', 'Financial Action Task Force', 'World Economic Forum'],
+  news: ['Gulf News', 'The National', 'Khaleej Times', 'Reuters', 'BBC News'],
+};
+
+function mockData() {
+  const rand = mulberry32(20260705);
+  const now = new Date();
+  const recs = [];
+  const regionW = [['UAE', 20], ['GCC', 15], ['Middle_East', 12], ['Global', 14], ['Europe', 10], ['Asia', 10], ['Americas', 8], ['Africa', 8], ['Oceania', 3]];
+  const sourceW = [['news', 38], ['governmental', 24], ['international_org', 22], ['academic', 16]];
+  for (let i = 0; i < 340; i++) {
+    const monthsAgo = Math.floor(Math.pow(rand(), 1.5) * 30);
+    const pub = new Date(now.getTime() - monthsAgo * 30.44 * 864e5 - rand() * 27 * 864e5);
+    const recency = (30 - monthsAgo) / 30; // 0 old → 1 recent
+    const crimeW = [
+      ['violent', 9], ['financial', 13], ['cyber', 10 + 14 * recency], ['trafficking', 8],
+      ['terrorism', 7], ['ai_enabled', 2 + 13 * recency], ['drugs', 9], ['organized_crime', 8],
+      ['children', 5], ['other', 4],
+    ];
+    const crimes = [weightedPick(rand, crimeW)];
+    if (rand() < 0.35) {
+      const second = weightedPick(rand, crimeW);
+      if (!crimes.includes(second)) crimes.push(second);
+    }
+    const region = weightedPick(rand, regionW);
+    const regions = [region];
+    if (region !== 'Global' && rand() < 0.18) regions.push('Global');
+    const scope = region === 'UAE' ? weightedPick(rand, [['local', 6], ['regional', 3], ['international', 1]])
+      : region === 'GCC' || region === 'Middle_East' ? weightedPick(rand, [['regional', 6], ['international', 3], ['local', 1]])
+      : 'international';
+    const source = weightedPick(rand, sourceW);
+    const names = SOURCE_NAMES[source];
+    const tpl = TITLE_TPL[crimes[0]];
+    const score = weightedPick(rand, [[5, 22], [4, 34], [3, 26], [2, 12], [1, 6]]);
+    recs.push({
+      id: i + 1,
+      title: tpl.en.replace('{r}', REGION_LABELS[region].en) + ' (' + pub.getFullYear() + ')',
+      title_ar: tpl.ar.replace('{r}', REGION_LABELS[region].ar) + ' (' + pub.getFullYear() + ')',
+      authors: null,
+      publication_date: pub.toISOString().slice(0, 10),
+      source_type: source,
+      source_name: names[Math.floor(rand() * names.length)],
+      url: 'https://example.org/references/' + (i + 1),
+      crime_type: crimes,
+      geographical_scope: scope,
+      region: regions,
+      language: rand() < 0.8 ? 'en' : 'ar',
+      relevance_score: score,
+      date_added: new Date(now.getTime() - rand() * 90 * 864e5).toISOString(),
+    });
+  }
+  return recs;
+}
+
+/* ═════════════════════════ Data layer ═════════════════════════ */
+function getWebhookUrl() { return (localStorage.getItem('dash_webhook_url') || '').trim(); }
+
+function normalize(r) {
+  return Object.assign({}, r, {
+    crime_type: toArr(r.crime_type),
+    region: toArr(r.region),
+    publication_date: r.publication_date ? String(r.publication_date).slice(0, 10) : null,
+    date_added: r.date_added ? String(r.date_added) : null,
+    relevance_score: r.relevance_score == null ? null : Number(r.relevance_score),
+  });
+}
+
+async function loadData(silent) {
+  const url = getWebhookUrl();
+  if (url) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 15000);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operation: 'GET_DASHBOARD_DATA', filters: {} }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(timer);
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.records)) {
+        state.all = data.records.map(normalize);
+        state.mode = 'live';
+        if (!silent) toast(T('toastLive'));
+        return;
+      }
+      throw new Error('unexpected payload');
+    } catch (e) {
+      state.mode = 'demo';
+      state.all = mockData();
+      if (!silent) toast(T('toastFail'), 5000);
+      return;
+    }
+  }
+  state.mode = 'demo';
+  state.all = mockData();
+}
+
+/* ═════════════════════════ Filtering & deltas ═════════════════════════ */
+function applyFilters() {
+  const f = state.filters;
+  const q = f.search.trim().toLowerCase();
+  state.filteredNoDate = state.all.filter((r) => {
+    if (f.crimeTypes.length && !r.crime_type.some((c) => f.crimeTypes.includes(c))) return false;
+    if (f.regions.length && !r.region.some((g) => f.regions.includes(g))) return false;
+    if (f.sourceType && r.source_type !== f.sourceType) return false;
+    if (f.scope && r.geographical_scope !== f.scope) return false;
+    if (f.relevanceMin && !(r.relevance_score >= f.relevanceMin)) return false;
+    if (q && !(
+      (r.title || '').toLowerCase().includes(q) ||
+      (r.title_ar || '').includes(f.search.trim()) ||
+      (r.source_name || '').toLowerCase().includes(q)
+    )) return false;
+    return true;
+  });
+  state.filtered = state.filteredNoDate.filter((r) => {
+    if (f.dateFrom && (!r.publication_date || r.publication_date < f.dateFrom)) return false;
+    if (f.dateTo && (!r.publication_date || r.publication_date > f.dateTo)) return false;
+    return true;
+  });
+}
+
+function periodWindows() {
+  const f = state.filters;
+  const to = f.dateTo ? new Date(f.dateTo) : new Date();
+  const from = f.dateFrom ? new Date(f.dateFrom) : new Date(to.getTime() - 365 * 864e5);
+  const span = Math.max(to.getTime() - from.getTime(), 864e5);
+  return { curFrom: from, curTo: to, prevFrom: new Date(from.getTime() - span), prevTo: from };
+}
+function windowCounts(pred) {
+  const w = periodWindows();
+  let cur = 0, prev = 0;
+  for (const r of state.filteredNoDate) {
+    if (pred && !pred(r)) continue;
+    if (!r.publication_date) continue;
+    const d = new Date(r.publication_date);
+    if (d >= w.curFrom && d <= w.curTo) cur++;
+    else if (d >= w.prevFrom && d < w.prevTo) prev++;
+  }
+  return { cur, prev };
+}
+function deltaHtml(cur, prev, suffix) {
+  let cls = 'flat', arrow = '—', txt = '';
+  if (prev > 0) {
+    const pct = ((cur - prev) / prev) * 100;
+    if (pct > 0.05) { cls = 'up'; arrow = '▲'; } else if (pct < -0.05) { cls = 'down'; arrow = '▼'; }
+    txt = Math.abs(pct).toFixed(1) + '%';
+  } else if (cur > 0) { cls = 'up'; arrow = '▲'; txt = '100%'; }
+  return { cls, html: `${arrow} ${txt}${suffix || ''} <span class="vs">${T('vsPrev')}</span>` };
+}
+function setDelta(id, d) {
+  const el = $id(id);
+  el.className = 'delta ' + d.cls;
+  el.innerHTML = d.html;
+}
+
+/* ═════════════════════════ Aggregations ═════════════════════════ */
+function countBy(records, getKeys) {
+  const out = {};
+  for (const r of records) for (const k of getKeys(r)) out[k] = (out[k] || 0) + 1;
+  return out;
+}
+const regionCounts = (recs) => countBy(recs, (r) => r.region);
+const crimeCounts = (recs) => countBy(recs, (r) => r.crime_type);
+const sourceCounts = (recs) => countBy(recs, (r) => (r.source_type ? [r.source_type] : []));
+
+/* ═════════════════════════ Charts ═════════════════════════ */
+function baseTextOpts() {
+  return { textStyle: { fontFamily: FONTS, color: '#8b93a7' } };
+}
+
+function renderMap() {
+  if (!charts.map) return;
+  const counts = regionCounts(state.filtered);
+  const vals = Object.values(counts);
+  const max = Math.max(1, vals.length ? Math.max.apply(null, vals) : 1);
+  const selected = state.filters.regions;
+
+  const regionsStyle = [];
+  for (const [rk, countries] of Object.entries(REGION_COUNTRIES)) {
+    const v = counts[rk] || 0;
+    const isSel = selected.includes(rk);
+    const alpha = v ? 0.09 + 0.28 * (v / max) : 0.05;
+    for (const c of countries) {
+      regionsStyle.push({
+        name: c,
+        itemStyle: {
+          areaColor: hexToRgba(REGION_COLORS[rk], isSel ? Math.min(alpha + 0.28, 0.95) : alpha),
+          borderColor: isSel ? 'rgba(255,255,255,0.55)' : 'rgba(120,150,210,0.20)',
+          borderWidth: isSel ? 1 : 0.5,
+        },
+      });
+    }
+  }
+
+  const markers = Object.entries(REGION_CENTROIDS)
+    .map(([rk, coord]) => {
+      const v = counts[rk] || 0;
+      return {
+        name: rk,
+        regionKey: rk,
+        value: [coord[0], coord[1], v],
+        itemStyle: { color: REGION_COLORS[rk], shadowBlur: 16, shadowColor: REGION_COLORS[rk] },
+        label: {
+          show: v > 0,
+          position: MARKER_LABEL_POS[rk] || 'top',
+          distance: 8,
+          formatter: RL(rk) + '\n' + fmt(v),
+          color: '#eef2fb', fontSize: 10, lineHeight: 13, fontWeight: 600, fontFamily: FONTS,
+          textShadowBlur: 4, textShadowColor: 'rgba(0,0,0,0.8)',
+        },
+      };
+    })
+    .filter((m) => m.value[2] > 0);
+
+  charts.map.setOption({
+    backgroundColor: 'transparent',
+    tooltip: Object.assign({}, tooltipStyle, {
+      trigger: 'item',
+      formatter: (p) => {
+        if (p.seriesType === 'effectScatter') {
+          return `<b>${RL(p.data.regionKey)}</b><br>${fmt(p.data.value[2])} ${state.lang === 'ar' ? 'مرجع' : 'references'}`;
+        }
+        const rk = COUNTRY_TO_REGION[p.name];
+        if (!rk) return p.name;
+        return `<b>${p.name}</b><br>${RL(rk)}: ${fmt(counts[rk] || 0)} ${state.lang === 'ar' ? 'مرجع' : 'references'}`;
+      },
+    }),
+    geo: {
+      map: 'world',
+      roam: true,
+      zoom: 1.2,
+      center: [15, 18],
+      itemStyle: { areaColor: '#131c33', borderColor: 'rgba(110,140,200,0.22)', borderWidth: 0.5 },
+      emphasis: { label: { show: false }, itemStyle: { areaColor: '#26345e' } },
+      select: { disabled: true },
+      regions: regionsStyle,
+    },
+    series: [{
+      type: 'effectScatter',
+      coordinateSystem: 'geo',
+      zlevel: 2,
+      data: markers,
+      symbolSize: (val) => 9 + 26 * Math.sqrt((val[2] || 0) / max),
+      rippleEffect: { brushType: 'stroke', scale: 2.6 },
+    }],
+  }, true);
+}
+
+function renderRegionBar() {
+  if (!charts.region) return;
+  const counts = regionCounts(state.filtered);
+  const rows = REGION_ORDER.map((rk) => ({ rk, v: counts[rk] || 0 })).sort((a, b) => a.v - b.v);
+  charts.region.setOption(Object.assign(baseTextOpts(), {
+    backgroundColor: 'transparent',
+    tooltip: Object.assign({}, tooltipStyle, { trigger: 'item', formatter: (p) => `<b>${p.name}</b>: ${fmt(p.value)}` }),
+    grid: { left: 8, right: 52, top: 8, bottom: 8, containLabel: true },
+    xAxis: { type: 'value', splitLine: { lineStyle: { color: '#202b4a' } }, axisLabel: { color: '#8b93a7', fontFamily: FONTS } },
+    yAxis: {
+      type: 'category',
+      data: rows.map((r) => RL(r.rk)),
+      axisLine: { lineStyle: { color: '#2a355a' } },
+      axisTick: { show: false },
+      axisLabel: { color: '#aeb8d0', fontFamily: FONTS, fontSize: 12 },
+    },
+    series: [{
+      type: 'bar',
+      data: rows.map((r) => ({
+        value: r.v,
+        name: RL(r.rk),
+        regionKey: r.rk,
+        itemStyle: {
+          color: REGION_COLORS[r.rk],
+          borderRadius: [0, 4, 4, 0],
+          opacity: state.filters.regions.length && !state.filters.regions.includes(r.rk) ? 0.25 : 1,
+        },
+      })),
+      barWidth: 13,
+      label: { show: true, position: 'right', color: '#eef2fb', fontFamily: FONTS, fontSize: 11, fontWeight: 600, formatter: (p) => fmt(p.value) },
+    }],
+  }), true);
+}
+
+function timeBuckets() {
+  const recs = state.filtered.filter((r) => r.publication_date);
+  if (!recs.length) return { labels: [], series: [] };
+  const keys = recs.map((r) => r.publication_date.slice(0, 7)).sort();
+  const minK = keys[0], maxK = keys[keys.length - 1];
+  const [minY, minM] = minK.split('-').map(Number);
+  const [maxY, maxM] = maxK.split('-').map(Number);
+  const spanMonths = (maxY - minY) * 12 + (maxM - minM) + 1;
+  const yearly = spanMonths > 30;
+
+  const labels = [];
+  if (yearly) {
+    for (let y = minY; y <= maxY; y++) labels.push(String(y));
+  } else {
+    let y = minY, m = minM;
+    while (y < maxY || (y === maxY && m <= maxM)) {
+      labels.push(y + '-' + String(m).padStart(2, '0'));
+      m++; if (m > 12) { m = 1; y++; }
+    }
+  }
+  const idx = {};
+  labels.forEach((l, i) => { idx[l] = i; });
+  const keyOf = (r) => (yearly ? r.publication_date.slice(0, 4) : r.publication_date.slice(0, 7));
+
+  const series = CRIME_ORDER.map((ck) => {
+    const data = labels.map(() => 0);
+    for (const r of recs) if (r.crime_type.includes(ck)) data[idx[keyOf(r)]]++;
+    return { ck, data };
+  });
+  const display = yearly
+    ? labels
+    : labels.map((l) => {
+      const [y, m] = l.split('-');
+      return T('months')[Number(m) - 1] + ' ' + y.slice(2);
+    });
+  return { labels: display, series };
+}
+
+function renderTime() {
+  if (!charts.time) return;
+  const { labels, series } = timeBuckets();
+  if (!state.legendSel) {
+    const totals = series.map((s) => ({ ck: s.ck, t: s.data.reduce((a, b) => a + b, 0) })).sort((a, b) => b.t - a.t);
+    const top = new Set(totals.slice(0, 6).map((x) => x.ck));
+    state.legendSel = {};
+    for (const s of series) state.legendSel[CL(s.ck)] = top.has(s.ck);
+  }
+  charts.time.setOption(Object.assign(baseTextOpts(), {
+    backgroundColor: 'transparent',
+    tooltip: Object.assign({}, tooltipStyle, { trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: 'rgba(122,152,210,0.4)' } } }),
+    legend: {
+      type: 'scroll',
+      top: 0,
+      textStyle: { color: '#aeb8d0', fontFamily: FONTS, fontSize: 11 },
+      pageIconColor: '#aeb8d0', pageTextStyle: { color: '#8b93a7' },
+      selected: state.legendSel,
+    },
+    grid: { left: 8, right: 16, top: 34, bottom: 6, containLabel: true },
+    xAxis: {
+      type: 'category', boundaryGap: false, data: labels,
+      axisLine: { lineStyle: { color: '#2a355a' } },
+      axisLabel: { color: '#8b93a7', fontFamily: FONTS, fontSize: 10.5 },
+    },
+    yAxis: {
+      type: 'value',
+      splitLine: { lineStyle: { color: '#202b4a' } },
+      axisLabel: { color: '#8b93a7', fontFamily: FONTS },
+    },
+    series: series.map((s) => ({
+      name: CL(s.ck),
+      type: 'line',
+      smooth: 0.25,
+      symbol: 'circle',
+      symbolSize: 5,
+      showSymbol: false,
+      lineStyle: { width: 2, color: CRIME_COLORS[s.ck] },
+      itemStyle: { color: CRIME_COLORS[s.ck] },
+      emphasis: { focus: 'series' },
+      data: s.data,
+    })),
+  }), true);
+}
+
+function renderDonut() {
+  if (!charts.donut) return;
+  const counts = sourceCounts(state.filtered);
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const official = (counts.governmental || 0) + (counts.international_org || 0);
+  const pct = total ? Math.round((official / total) * 100) : 0;
+  charts.donut.setOption(Object.assign(baseTextOpts(), {
+    backgroundColor: 'transparent',
+    tooltip: Object.assign({}, tooltipStyle, {
+      trigger: 'item',
+      formatter: (p) => `<b>${p.name}</b>: ${fmt(p.value)} (${p.percent}%)`,
+    }),
+    graphic: [
+      { type: 'text', left: 'center', top: '41%', style: { text: pct + '%', fill: '#eef2fb', fontSize: 30, fontWeight: 800, fontFamily: FONTS, textAlign: 'center' } },
+      { type: 'text', left: 'center', top: '53%', style: { text: T('officialShare'), fill: '#8b93a7', fontSize: 10, fontWeight: 600, fontFamily: FONTS, textAlign: 'center', lineHeight: 13 } },
+    ],
+    series: [{
+      type: 'pie',
+      radius: ['52%', '74%'],
+      center: ['50%', '50%'],
+      itemStyle: { borderColor: PAGE_BG, borderWidth: 2 },
+      label: { color: '#aeb8d0', fontFamily: FONTS, fontSize: 11, formatter: (p) => `${p.name}\n${p.percent}%` },
+      labelLine: { lineStyle: { color: 'rgba(122,152,210,0.35)' } },
+      data: SOURCE_ORDER.map((sk) => ({
+        name: SL(sk),
+        sourceKey: sk,
+        value: counts[sk] || 0,
+        itemStyle: {
+          color: SOURCE_COLORS[sk],
+          opacity: state.filters.sourceType && state.filters.sourceType !== sk ? 0.25 : 1,
+        },
+      })).filter((d) => d.value > 0),
+    }],
+  }), true);
+}
+
+/* ═════════════════════════ DOM rendering ═════════════════════════ */
+function renderHero() {
+  $id('heroVal').textContent = fmt(state.filtered.length);
+  $id('heroOf').textContent = T('ofTotal').replace('{n}', fmt(state.all.length));
+  setDelta('heroDelta', (function () { const c = windowCounts(null); return deltaHtml(c.cur, c.prev); })());
+
+  const cyber = state.filtered.filter((r) => r.crime_type.includes('cyber') || r.crime_type.includes('ai_enabled')).length;
+  $id('kpiCyberVal').textContent = fmt(cyber);
+  setDelta('kpiCyberDelta', (function () { const c = windowCounts((r) => r.crime_type.includes('cyber') || r.crime_type.includes('ai_enabled')); return deltaHtml(c.cur, c.prev); })());
+
+  const terror = state.filtered.filter((r) => r.crime_type.includes('terrorism') || r.crime_type.includes('organized_crime')).length;
+  $id('kpiTerrorVal').textContent = fmt(terror);
+  setDelta('kpiTerrorDelta', (function () { const c = windowCounts((r) => r.crime_type.includes('terrorism') || r.crime_type.includes('organized_crime')); return deltaHtml(c.cur, c.prev); })());
+
+  const scored = state.filtered.filter((r) => r.relevance_score != null);
+  const avg = scored.length ? scored.reduce((s, r) => s + r.relevance_score, 0) / scored.length : 0;
+  $id('kpiScoreVal').textContent = avg ? avg.toFixed(1) + ' / 5' : '—';
+  (function () {
+    const w = periodWindows();
+    const inWin = (r, a, b) => r.publication_date && new Date(r.publication_date) >= a && new Date(r.publication_date) < b;
+    const curArr = state.filteredNoDate.filter((r) => r.relevance_score != null && inWin(r, w.curFrom, new Date(w.curTo.getTime() + 864e5)));
+    const prevArr = state.filteredNoDate.filter((r) => r.relevance_score != null && inWin(r, w.prevFrom, w.prevTo));
+    const cAvg = curArr.length ? curArr.reduce((s, r) => s + r.relevance_score, 0) / curArr.length : 0;
+    const pAvg = prevArr.length ? prevArr.reduce((s, r) => s + r.relevance_score, 0) / prevArr.length : 0;
+    setDelta('kpiScoreDelta', deltaHtml(cAvg * 100, pAvg * 100));
+  })();
+
+  const now = Date.now();
+  const in30 = (r, offset) => r.date_added && (now - new Date(r.date_added).getTime()) >= offset * 30 * 864e5 && (now - new Date(r.date_added).getTime()) < (offset + 1) * 30 * 864e5;
+  const new30 = state.filtered.filter((r) => in30(r, 0)).length;
+  const prev30 = state.filteredNoDate.filter((r) => in30(r, 1)).length;
+  $id('kpiNewVal').textContent = fmt(new30);
+  setDelta('kpiNewDelta', deltaHtml(new30, prev30));
+}
+
+function renderShowingTag() {
+  const tag = $id('showingTag');
+  const regs = state.filters.regions;
+  if (regs.length) {
+    tag.style.display = 'inline-flex';
+    tag.innerHTML = `${state.lang === 'ar' ? 'عرض:' : 'Showing:'} ${regs.map(RL).join('، ')} <button type="button" id="clearRegionTag">✕</button>`;
+    $id('clearRegionTag').onclick = () => { state.filters.regions = []; onFilterChange(); };
+  } else {
+    tag.style.display = 'none';
+  }
+}
+
+function renderActiveChips() {
+  const f = state.filters;
+  const chips = [];
+  const add = (label, clear) => chips.push({ label, clear });
+  f.crimeTypes.forEach((c) => add(CL(c), () => { f.crimeTypes = f.crimeTypes.filter((x) => x !== c); }));
+  f.regions.forEach((r) => add(RL(r), () => { f.regions = f.regions.filter((x) => x !== r); }));
+  if (f.sourceType) add(SL(f.sourceType), () => { f.sourceType = ''; });
+  if (f.scope) add(SCOPE_LABELS[f.scope][state.lang], () => { f.scope = ''; });
+  if (f.relevanceMin) add(T('scoreMin') + f.relevanceMin, () => { f.relevanceMin = 0; });
+  if (f.dateFrom) add('≥ ' + f.dateFrom, () => { f.dateFrom = ''; });
+  if (f.dateTo) add('≤ ' + f.dateTo, () => { f.dateTo = ''; });
+  if (f.search.trim()) add('"' + f.search.trim() + '"', () => { f.search = ''; });
+
+  const row = $id('activeRow');
+  const box = $id('activeChips');
+  box.innerHTML = '';
+  if (!chips.length) { row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  chips.forEach((ch) => {
+    const el = document.createElement('span');
+    el.className = 'a-chip';
+    el.innerHTML = escHtml(ch.label) + ' <button type="button">✕</button>';
+    el.querySelector('button').onclick = () => { ch.clear(); syncControls(); onFilterChange(); };
+    box.appendChild(el);
+  });
+}
+
+function renderTable() {
+  const recs = state.filtered;
+  $id('tblCount').textContent = fmt(recs.length);
+  const body = $id('tblBody');
+  const shown = recs.slice(0, 100);
+  body.innerHTML = shown.map((r) => {
+    const title = state.lang === 'ar' && r.title_ar ? r.title_ar : r.title;
+    const crimeChips = r.crime_type.map((c) =>
+      `<span class="t-chip" style="color:${CRIME_COLORS[c] || '#8b93a7'};border-color:${hexToRgba(CRIME_COLORS[c] || '#8b93a7', 0.5)};">${escHtml(CL(c))}</span>`).join('');
+    const regs = r.region.map(RL).join('، ');
+    const link = r.url ? `<a href="${escHtml(r.url)}" target="_blank" rel="noopener">${escHtml(title)}</a>` : escHtml(title);
+    return `<tr>
+      <td class="num" style="white-space:nowrap;">${escHtml(r.publication_date || '—')}</td>
+      <td style="min-width:260px;">${link}</td>
+      <td>${escHtml(r.source_name || SL(r.source_type))}</td>
+      <td>${crimeChips}</td>
+      <td>${escHtml(regs)}</td>
+      <td class="num">${r.relevance_score != null ? r.relevance_score : '—'}</td>
+    </tr>`;
+  }).join('');
+  $id('tblShowing').textContent = T('showing').replace('{a}', fmt(shown.length)).replace('{b}', fmt(recs.length));
+}
+
+function renderAll() {
+  applyFilters();
+  $id('emptyBanner').classList.toggle('show', state.filtered.length === 0);
+  renderHero();
+  renderMap();
+  renderRegionBar();
+  renderTime();
+  renderDonut();
+  renderTable();
+  renderShowingTag();
+  renderActiveChips();
+}
+
+/* ═════════════════════════ Controls ═════════════════════════ */
+function buildCrimeChips() {
+  const box = $id('crimeChips');
+  box.innerHTML = '';
+  CRIME_ORDER.forEach((ck) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + (state.filters.crimeTypes.includes(ck) ? ' on' : '');
+    b.style.color = state.filters.crimeTypes.includes(ck) ? CRIME_COLORS[ck] : '';
+    b.innerHTML = `<span class="sw" style="background:${CRIME_COLORS[ck]}"></span>${escHtml(CL(ck))}`;
+    b.onclick = () => {
+      const arr = state.filters.crimeTypes;
+      state.filters.crimeTypes = arr.includes(ck) ? arr.filter((x) => x !== ck) : arr.concat(ck);
+      buildCrimeChips();
+      onFilterChange();
+    };
+    box.appendChild(b);
+  });
+}
+function buildSelect(id, placeholder, entries, current) {
+  const sel = $id(id);
+  sel.innerHTML = `<option value="">${escHtml(placeholder)}</option>` +
+    entries.map(([v, l]) => `<option value="${escHtml(v)}"${v === current ? ' selected' : ''}>${escHtml(l)}</option>`).join('');
+}
+function buildSelects() {
+  buildSelect('selRegion', T('allRegions'), REGION_ORDER.map((r) => [r, RL(r)]), state.filters.regions[0] || '');
+  buildSelect('selSource', T('allSources'), SOURCE_ORDER.map((s) => [s, SL(s)]), state.filters.sourceType);
+  buildSelect('selScope', T('allScopes'), SCOPE_ORDER.map((s) => [s, SCOPE_LABELS[s][state.lang]]), state.filters.scope);
+  buildSelect('selScore', T('anyScore'), [1, 2, 3, 4, 5].map((n) => [String(n), T('scoreMin') + n]), state.filters.relevanceMin ? String(state.filters.relevanceMin) : '');
+}
+function syncControls() {
+  buildCrimeChips();
+  buildSelects();
+  $id('dateFrom').value = state.filters.dateFrom;
+  $id('dateTo').value = state.filters.dateTo;
+  $id('txtSearch').value = state.filters.search;
+}
+function onFilterChange() {
+  renderAll();
+}
+function toggleRegion(rk) {
+  const arr = state.filters.regions;
+  state.filters.regions = arr.includes(rk) ? arr.filter((x) => x !== rk) : [rk];
+  buildSelects();
+  onFilterChange();
+}
+
+/* ═════════════════════════ Language ═════════════════════════ */
+function applyLang() {
+  const L = state.lang;
+  document.documentElement.lang = L;
+  document.documentElement.dir = L === 'ar' ? 'rtl' : 'ltr';
+  document.querySelectorAll('[data-i]').forEach((el) => {
+    const k = el.getAttribute('data-i');
+    if (I18N[L][k] !== undefined) el.textContent = I18N[L][k];
+  });
+  $id('btnLang').textContent = L === 'ar' ? 'English' : 'العربية';
+  $id('txtSearch').placeholder = T('searchPh');
+  $id('webhookInput').placeholder = 'https://your-n8n.example.com/webhook/dashboard-api';
+  updateBadge();
+  state.legendSel = null; // legend names change with language
+  syncControls();
+}
+
+function updateBadge() {
+  const badge = $id('modeBadge');
+  badge.className = 'badge ' + (state.mode === 'live' ? 'live' : 'demo');
+  $id('modeText').textContent = state.mode === 'live' ? T('live') : T('demo');
+}
+
+/* ═════════════════════════ CSV export ═════════════════════════ */
+function exportCsv() {
+  const head = ['id', 'publication_date', 'title', 'title_ar', 'source_type', 'source_name', 'crime_types', 'regions', 'scope', 'relevance_score', 'url'];
+  const cell = (v) => {
+    const s = String(v == null ? '' : v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [head.join(',')];
+  for (const r of state.filtered) {
+    lines.push([
+      r.id, r.publication_date || '', r.title || '', r.title_ar || '', r.source_type || '',
+      r.source_name || '', r.crime_type.join('|'), r.region.join('|'),
+      r.geographical_scope || '', r.relevance_score != null ? r.relevance_score : '', r.url || '',
+    ].map(cell).join(','));
+  }
+  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'criminal_references_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ═════════════════════════ Report generation ═════════════════════════ */
+function filtersSummaryText() {
+  const f = state.filters;
+  const parts = [];
+  if (f.crimeTypes.length) parts.push(T('fCrime') + ': ' + f.crimeTypes.map(CL).join(', '));
+  if (f.regions.length) parts.push((state.lang === 'ar' ? 'المنطقة' : 'Region') + ': ' + f.regions.map(RL).join(', '));
+  if (f.sourceType) parts.push((state.lang === 'ar' ? 'المصدر' : 'Source') + ': ' + SL(f.sourceType));
+  if (f.scope) parts.push((state.lang === 'ar' ? 'النطاق' : 'Scope') + ': ' + SCOPE_LABELS[f.scope][state.lang]);
+  if (f.relevanceMin) parts.push(T('scoreMin') + f.relevanceMin);
+  if (f.dateFrom || f.dateTo) parts.push((f.dateFrom || '…') + ' → ' + (f.dateTo || '…'));
+  if (f.search.trim()) parts.push('"' + f.search.trim() + '"');
+  return parts.length ? parts.join(' • ') : T('reportNone');
+}
+
+function statTableHtml(title, counts, labelFn, colorMap) {
+  const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+  const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
+    `<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${(colorMap && colorMap[k]) || '#8b93a7'};margin-inline-end:7px;"></span>${escHtml(labelFn(k))}</td><td class="n">${fmt(v)}</td><td class="n">${((v / total) * 100).toFixed(1)}%</td></tr>`
+  ).join('');
+  return `<div class="stat-block"><h3>${escHtml(title)}</h3><table><thead><tr><th></th><th class="n">${T('count')}</th><th class="n">${T('share')}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+async function generateReport() {
+  const btn = $id('btnReport');
+  btn.disabled = true;
+  let reportId = null;
+  let logged = false;
+
+  if (state.mode === 'live') {
+    try {
+      const f = state.filters;
+      const res = await fetch(getWebhookUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation: 'GENERATE_REPORT',
+          filters: {
+            crime_types: f.crimeTypes, regions: f.regions, source_type: f.sourceType || undefined,
+            scope: f.scope || undefined, date_from: f.dateFrom || undefined, date_to: f.dateTo || undefined,
+            relevance_min: f.relevanceMin || undefined, search: f.search.trim() || undefined,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data && data.success) { reportId = data.report_id; logged = data.logged_to_database; }
+    } catch (e) { /* report still generated locally */ }
+  }
+
+  const imgs = {};
+  for (const [k, ch] of Object.entries(charts)) {
+    try { if (ch) imgs[k] = ch.getDataURL({ pixelRatio: 2, backgroundColor: '#0f172e' }); } catch (e) { /* skip */ }
+  }
+
+  const now = new Date();
+  const L = state.lang;
+  const dirAttr = L === 'ar' ? 'rtl' : 'ltr';
+  const recs = state.filtered.slice(0, 60);
+  const refRows = recs.map((r, i) => {
+    const title = L === 'ar' && r.title_ar ? r.title_ar : r.title;
+    return `<tr><td class="n">${i + 1}</td><td class="n">${escHtml(r.publication_date || '—')}</td><td>${escHtml(title)}${r.url ? ` — <a href="${escHtml(r.url)}">${escHtml(r.source_name || r.url)}</a>` : ''}</td><td>${r.crime_type.map(CL).map(escHtml).join('، ')}</td><td>${r.region.map(RL).map(escHtml).join('، ')}</td></tr>`;
+  }).join('');
+
+  const doc = `<!DOCTYPE html>
+<html lang="${L}" dir="${dirAttr}">
+<head>
+<meta charset="UTF-8">
+<title>${escHtml(T('reportTitle'))} — ${now.toISOString().slice(0, 10)}</title>
+<style>
+  body { font-family: 'Inter','IBM Plex Sans Arabic',system-ui,sans-serif; color: #14181f; margin: 0; background: #f4f5f8; }
+  .page { max-width: 1000px; margin: 0 auto; padding: 34px 38px; background: #fff; }
+  h1 { font-size: 26px; margin: 0 0 2px; }
+  h2 { font-size: 15px; color: #566; font-weight: 600; margin: 0 0 18px; }
+  h3 { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: #667; margin: 22px 0 8px; }
+  .meta { background: #eef2f8; border-radius: 10px; padding: 12px 16px; font-size: 13px; margin-bottom: 18px; line-height: 1.8; }
+  .hero-num { font-size: 40px; font-weight: 800; }
+  .imgs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .imgs figure { margin: 0; border: 1px solid #dde3ee; border-radius: 12px; overflow: hidden; align-self: start; }
+  .imgs img { width: 100%; display: block; }
+  .imgs figcaption { font-size: 11px; color: #667; padding: 7px 10px; background: #f7f9fc; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid #e5e9f2; text-align: start; }
+  th { color: #667; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td.n, th.n { font-variant-numeric: tabular-nums; }
+  a { color: #1c5cab; }
+  .print-btn { position: fixed; top: 14px; inset-inline-end: 14px; background: #1c5cab; color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .footer { color: #889; font-size: 11px; text-align: center; padding: 18px 0 8px; }
+  @media print { .print-btn { display: none; } body { background: #fff; } .page { padding: 10mm; } }
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">${escHtml(T('print'))}</button>
+<div class="page">
+  <h1>${escHtml(T('reportTitle'))}</h1>
+  <h2>${L === 'ar' ? 'Criminal Intelligence Report' : 'تقرير الرصد الجنائي'}</h2>
+  <div class="meta">
+    <b>${escHtml(T('reportGenerated'))}:</b> ${now.toLocaleString(L === 'ar' ? 'ar-AE' : 'en-GB')}<br>
+    <b>${escHtml(T('reportFilters'))}:</b> ${escHtml(filtersSummaryText())}<br>
+    <b>${escHtml(T('reportRefs'))}:</b> ${fmt(state.filtered.length)}
+    ${logged ? `<br><b>Report ID:</b> #${reportId}` : ''}
+  </div>
+  <div class="hero-num">${fmt(state.filtered.length)}</div>
+  <div style="color:#667;font-size:12px;">${escHtml(T('totalRefs'))}</div>
+  <div class="imgs">
+    ${imgs.map ? `<figure><img src="${imgs.map}" alt=""><figcaption>${escHtml(T('mapTitle'))}</figcaption></figure>` : ''}
+    ${imgs.region ? `<figure><img src="${imgs.region}" alt=""><figcaption>${escHtml(T('regionTitle'))}</figcaption></figure>` : ''}
+    ${imgs.time ? `<figure><img src="${imgs.time}" alt=""><figcaption>${escHtml(T('timeTitle'))}</figcaption></figure>` : ''}
+    ${imgs.donut ? `<figure><img src="${imgs.donut}" alt=""><figcaption>${escHtml(T('donutTitle'))}</figcaption></figure>` : ''}
+  </div>
+  <div class="stats">
+    ${statTableHtml(T('byCrime'), crimeCounts(state.filtered), CL, CRIME_COLORS)}
+    ${statTableHtml(T('byRegion'), regionCounts(state.filtered), RL, REGION_COLORS)}
+    ${statTableHtml(T('bySource'), sourceCounts(state.filtered), SL, SOURCE_COLORS)}
+  </div>
+  <h3>${escHtml(T('reportRefs'))} (${fmt(Math.min(60, state.filtered.length))})</h3>
+  <table>
+    <thead><tr><th class="n">#</th><th class="n">${escHtml(T('thDate'))}</th><th>${escHtml(T('thTitle'))}</th><th>${escHtml(T('thCrime'))}</th><th>${escHtml(T('thRegion'))}</th></tr></thead>
+    <tbody>${refRows}</tbody>
+  </table>
+  <div class="footer">${escHtml(T('footer'))}</div>
+</div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(doc);
+    win.document.close();
+  } else {
+    const blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'criminal_intelligence_report_' + now.toISOString().slice(0, 10) + '.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast(T('toastPopup'), 5000);
+  }
+  if (logged && reportId) toast(T('toastLogged').replace('{id}', reportId), 5000);
+  else if (state.mode !== 'live') toast(T('toastLocal'), 4500);
+  btn.disabled = false;
+}
+
+/* ═════════════════════════ Init ═════════════════════════ */
+function initCharts() {
+  const hasWorld = typeof echarts.getMap === 'function' ? !!echarts.getMap('world') : true;
+  if (hasWorld) {
+    charts.map = echarts.init($id('mapChart'));
+    charts.map.on('click', (p) => {
+      let rk = null;
+      if (p.seriesType === 'effectScatter' && p.data) rk = p.data.regionKey;
+      else if (p.componentType === 'geo') rk = COUNTRY_TO_REGION[p.name] || null;
+      if (rk) toggleRegion(rk);
+    });
+  } else {
+    $id('mapChart').innerHTML = '<div style="color:#8b93a7;padding:40px;text-align:center;">World map assets could not be loaded (offline?). All other charts remain functional.</div>';
+  }
+  charts.region = echarts.init($id('regionChart'));
+  charts.region.on('click', (p) => { if (p.data && p.data.regionKey) toggleRegion(p.data.regionKey); });
+
+  charts.time = echarts.init($id('timeChart'));
+  charts.time.on('legendselectchanged', (e) => { state.legendSel = e.selected; });
+
+  charts.donut = echarts.init($id('donutChart'));
+  charts.donut.on('click', (p) => {
+    if (p.data && p.data.sourceKey) {
+      state.filters.sourceType = state.filters.sourceType === p.data.sourceKey ? '' : p.data.sourceKey;
+      buildSelects();
+      onFilterChange();
+    }
+  });
+
+  window.addEventListener('resize', () => { Object.values(charts).forEach((c) => c && c.resize()); });
+}
+
+async function refreshData(silent) {
+  await loadData(silent);
+  updateBadge();
+  $id('lastUpdated').textContent = T('lastUpdated') + ': ' + new Date().toLocaleTimeString(state.lang === 'ar' ? 'ar-AE' : 'en-GB');
+  renderAll();
+}
+
+function wireEvents() {
+  $id('btnLang').onclick = () => {
+    state.lang = state.lang === 'ar' ? 'en' : 'ar';
+    localStorage.setItem('dash_lang', state.lang);
+    applyLang();
+    renderAll();
+    $id('lastUpdated').textContent = '';
+  };
+  $id('btnRefresh').onclick = () => refreshData(false);
+  $id('btnReport').onclick = generateReport;
+  $id('btnCsv').onclick = (e) => { e.preventDefault(); exportCsv(); };
+  $id('btnReset').onclick = () => {
+    state.filters = { crimeTypes: [], regions: [], sourceType: '', scope: '', dateFrom: '', dateTo: '', relevanceMin: 0, search: '' };
+    syncControls();
+    onFilterChange();
+  };
+  $id('selRegion').onchange = (e) => { state.filters.regions = e.target.value ? [e.target.value] : []; onFilterChange(); };
+  $id('selSource').onchange = (e) => { state.filters.sourceType = e.target.value; onFilterChange(); };
+  $id('selScope').onchange = (e) => { state.filters.scope = e.target.value; onFilterChange(); };
+  $id('selScore').onchange = (e) => { state.filters.relevanceMin = Number(e.target.value) || 0; onFilterChange(); };
+  $id('dateFrom').onchange = (e) => { state.filters.dateFrom = e.target.value; onFilterChange(); };
+  $id('dateTo').onchange = (e) => { state.filters.dateTo = e.target.value; onFilterChange(); };
+  let searchTimer;
+  $id('txtSearch').oninput = (e) => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { state.filters.search = e.target.value; onFilterChange(); }, 250);
+  };
+
+  $id('btnSettings').onclick = () => {
+    $id('webhookInput').value = getWebhookUrl();
+    $id('settingsOverlay').classList.add('show');
+  };
+  $id('btnCancelSet').onclick = () => $id('settingsOverlay').classList.remove('show');
+  $id('btnSaveSet').onclick = () => {
+    localStorage.setItem('dash_webhook_url', $id('webhookInput').value.trim());
+    $id('settingsOverlay').classList.remove('show');
+    refreshData(false);
+  };
+  $id('btnDemoMode').onclick = () => {
+    localStorage.setItem('dash_webhook_url', '');
+    $id('settingsOverlay').classList.remove('show');
+    refreshData(false);
+  };
+  $id('settingsOverlay').onclick = (e) => { if (e.target === $id('settingsOverlay')) $id('settingsOverlay').classList.remove('show'); };
+}
+
+async function init() {
+  $id('yearSpan').textContent = new Date().getFullYear();
+  wireEvents();
+  applyLang();
+  initCharts();
+  await refreshData(true);
+  if (state.mode === 'demo' && !getWebhookUrl()) toast(T('toastDemo'), 4000);
+  setInterval(() => { if (state.mode === 'live') refreshData(true); }, 60000);
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
